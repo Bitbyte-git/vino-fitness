@@ -27,6 +27,8 @@ const reportRoutes = require('./routes/reports');
 const settingRoutes = require('./routes/settings');
 const auditLogRoutes = require('./routes/auditLogs');
 const registrationRoutes = require('./routes/registration');
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./docs/swagger');
 
 const app = express();
 
@@ -103,6 +105,15 @@ app.use('/api/reports', reportRoutes);
 app.use('/api/settings', settingRoutes);
 app.use('/api/audit-logs', auditLogRoutes);
 app.use('/api/registration', registrationRoutes);
+
+// Swagger API Documentation routes
+const swaggerOptions = {
+  customCss: '.swagger-ui .topbar { display: none } body { background-color: #0c0f0d; color: #f5f5f7; } .swagger-ui { filter: invert(88%) hue-rotate(180deg); } .swagger-ui .wrapper { max-width: 1200px; margin: 0 auto; }',
+  customSiteTitle: 'Vino Fitness Studio — API Documentation',
+};
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerOptions));
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument, swaggerOptions));
+app.get('/api-docs.json', (req, res) => res.json(swaggerDocument));
 
 // Health check endpoint (for K8s Liveness & Readiness Probes and Load Balancers)
 app.get('/api/health', (req, res) => {
