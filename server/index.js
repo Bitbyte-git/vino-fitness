@@ -79,6 +79,7 @@ app.use('/api/auth/login', createRateLimiter(
   'Too many failed login attempts. Try again in 15 minutes.',
   { skipSuccessfulRequests: true },
 ));
+app.use('/api/auth/refresh', createRateLimiter(15 * 60 * 1000, 30, 'Too many token refresh requests. Try again later.'));
 app.use('/api/registration/checkout', createRateLimiter(60 * 1000, 10, 'Too many checkout attempts. Try again in one minute.'));
 app.use('/api/registration/verify-payment', createRateLimiter(60 * 1000, 20, 'Too many payment verification attempts. Try again in one minute.'));
 app.use('/api/registration', createRateLimiter(

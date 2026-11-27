@@ -2,10 +2,10 @@ const path = require('path');
 require('dotenv').config({ path: path.join(__dirname, '../.env') });
 
 const nodeEnv = process.env.NODE_ENV || 'development';
-const configuredOrigins = (process.env.FRONTEND_URL || '*')
+const configuredOrigins = (process.env.FRONTEND_URL || '')
   .split(',')
   .map((origin) => origin.trim())
-  .filter(Boolean);
+  .filter((origin) => origin && origin !== '*');
 const productionAllowedOrigins = [
   'https://gym-management-app-wine-ten.vercel.app',
   'https://vinofitnessstudio.vercel.app',
@@ -15,6 +15,11 @@ const localDevelopmentOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:3000',
+];
+const allowedOrigins = [
+  ...productionAllowedOrigins,
+  ...configuredOrigins,
+  ...localDevelopmentOrigins,
 ];
 
 function biometricKeys() {
@@ -44,7 +49,7 @@ const config = {
     refreshExpire: process.env.JWT_REFRESH_EXPIRE || '30d',
   },
   cors: {
-    origin: [/.*/, ...productionAllowedOrigins, ...new Set([...configuredOrigins, ...localDevelopmentOrigins])],
+    origin: allowedOrigins,
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-Registration-Token', 'Idempotency-Key'],
