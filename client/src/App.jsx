@@ -16,6 +16,7 @@ const Login = lazy(() => import('./pages/Login'));
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Register = lazy(() => import('./pages/Register'));
 const AttendanceVerification = lazy(() => import('./pages/AttendanceVerification'));
+const ApiDocs = lazy(() => import('./pages/ApiDocs'));
 
 export default function App(){
   return <ErrorBoundary>
@@ -40,6 +41,8 @@ export default function App(){
       {/* Authentication & Registration */}
       <Route path="/login" element={<Login/>}/>
       <Route path="/register" element={<Register/>}/>
+      <Route path="/api-docs" element={<ApiDocs/>}/>
+      <Route path="/docs" element={<ApiDocs/>}/>
 
       {/* Internal & Member Dashboards */}
       <Route path="/kiosk" element={
