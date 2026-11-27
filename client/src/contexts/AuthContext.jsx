@@ -12,12 +12,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAuth = async () => {
+    // Clean up any legacy localStorage tokens
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     try {
       const response = await authService.getMe();
       setUser(response.data.data.user);
     } catch (error) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
       setUser(null);
     } finally {
       setLoading(false);
@@ -26,10 +27,11 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     const response = await authService.login(credentials);
-    const { accessToken, refreshToken, user: userData } = response.data.data;
+    const { user: userData } = response.data.data;
     
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+    // Purge tokens from localStorage completely (handled via HttpOnly cookies)
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     setUser(userData);
     
     return userData;
@@ -49,10 +51,10 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (data) => {
     const response = await authService.register(data);
-    const { accessToken, refreshToken, user: userData } = response.data.data;
+    const { user: userData } = response.data.data;
     
-    localStorage.setItem('accessToken', accessToken);
-    localStorage.setItem('refreshToken', refreshToken);
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     setUser(userData);
     
     return userData;

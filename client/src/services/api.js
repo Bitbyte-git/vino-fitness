@@ -15,10 +15,6 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     config.withCredentials = true;
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -30,17 +26,13 @@ api.interceptors.response.use(
     const originalRequest = error.config;
     if (!originalRequest) return Promise.reject(error);
 
-    const refreshToken = localStorage.getItem('refreshToken');
     const isAuthRequest = /\/auth\/(login|register|refresh)/.test(originalRequest.url || '');
-    if (error.response?.status === 401 && refreshToken && !isAuthRequest && !originalRequest._retry) {
+    if (error.response?.status === 401 && !isAuthRequest && !originalRequest._retry) {
       originalRequest._retry = true;
       try {
         if (!refreshPromise) {
-          refreshPromise = axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken }, { withCredentials: true })
+          refreshPromise = axios.post(`${API_BASE_URL}/auth/refresh`, {}, { withCredentials: true })
             .then((refreshResponse) => {
-              const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data.data;
-              localStorage.setItem('accessToken', accessToken);
-              localStorage.setItem('refreshToken', newRefreshToken);
               setTimeout(() => {
                 refreshPromise = undefined;
               }, 1000);
@@ -51,13 +43,7 @@ api.interceptors.response.use(
               throw refreshError;
             });
         }
-        const response = await refreshPromise;
-
-        const { accessToken, refreshToken: newRefreshToken } = response.data.data;
-        localStorage.setItem('accessToken', accessToken);
-        localStorage.setItem('refreshToken', newRefreshToken);
-
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        await refreshPromise;
         return api(originalRequest);
       } catch (refreshError) {
         localStorage.removeItem('accessToken');
