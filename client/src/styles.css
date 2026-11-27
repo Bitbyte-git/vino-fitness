@@ -14041,7 +14041,7 @@ svg.icon-danger {
 @media (min-width: 900px) {
   .admin-shell .table-scroll,
   .admin-table-card .table-scroll {
-    overflow-x: hidden !important;
+    overflow-x: auto !important;
   }
 }
 
@@ -14049,8 +14049,7 @@ svg.icon-danger {
 .admin-table-card table,
 .admin-table {
   width: 100% !important;
-  min-width: 100% !important;
-  max-width: 100% !important;
+  min-width: 1100px !important;
   table-layout: fixed !important;
   border-collapse: separate !important;
   border-spacing: 0 !important;
@@ -14086,6 +14085,19 @@ svg.icon-danger {
 .admin-table-card tbody tr:hover td,
 .admin-table tbody tr:hover td {
   background: rgba(201, 255, 24, 0.035) !important;
+}
+
+.attendance-table td .training-active-pill,
+.attendance-table td .studio-status-pill,
+.attendance-table td .gym-time-pill,
+.attendance-table td .terminal-device-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin: 0 auto !important;
+  white-space: nowrap !important;
+  position: static !important;
+  float: none !important;
 }
 
 /* Center-aligned elements in Admin tables */
@@ -14284,43 +14296,51 @@ svg.icon-danger {
    ───────────────────────────────────────────────────────────── */
 .attendance-table.admin-table th.col-member,
 .attendance-table.admin-table td.col-member {
-  width: 24% !important;
+  width: 20% !important;
+  min-width: 170px !important;
   text-align: left !important;
   padding-left: 18px !important;
 }
 .attendance-table.admin-table th.col-sessionName,
 .attendance-table.admin-table td.col-sessionName {
-  width: 12% !important;
+  width: 10% !important;
+  min-width: 95px !important;
   text-align: center !important;
 }
 .attendance-table.admin-table th.col-checkInTime,
 .attendance-table.admin-table td.col-checkInTime {
-  width: 12% !important;
+  width: 10% !important;
+  min-width: 95px !important;
   text-align: center !important;
 }
 .attendance-table.admin-table th.col-checkOutTime,
 .attendance-table.admin-table td.col-checkOutTime {
-  width: 12% !important;
+  width: 13% !important;
+  min-width: 125px !important;
   text-align: center !important;
 }
 .attendance-table.admin-table th.col-duration,
 .attendance-table.admin-table td.col-duration {
-  width: 10% !important;
+  width: 11% !important;
+  min-width: 105px !important;
   text-align: center !important;
 }
 .attendance-table.admin-table th.col-attendanceStatus,
 .attendance-table.admin-table td.col-attendanceStatus {
-  width: 10% !important;
+  width: 14% !important;
+  min-width: 135px !important;
   text-align: center !important;
 }
 .attendance-table.admin-table th.col-deviceId,
 .attendance-table.admin-table td.col-deviceId {
-  width: 9% !important;
+  width: 12% !important;
+  min-width: 115px !important;
   text-align: center !important;
 }
 .attendance-table.admin-table th.col-actions,
 .attendance-table.admin-table td.col-actions {
-  width: 11% !important;
+  width: 10% !important;
+  min-width: 105px !important;
   text-align: center !important;
   padding-right: 14px !important;
 }

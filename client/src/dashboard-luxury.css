@@ -1918,17 +1918,17 @@ button.outline-btn:hover {
 /* Fix Actions Column Truncation */
 .attendance-table-card table th:last-child,
 .attendance-table-card table td:last-child {
-  min-width: 175px !important;
-  width: 175px !important;
-  text-align: right !important;
+  min-width: 105px !important;
+  text-align: center !important;
 }
 
 .attendance-table-card .row-actions {
   display: flex !important;
   align-items: center !important;
-  justify-content: flex-end !important;
+  justify-content: center !important;
   gap: 8px !important;
   white-space: nowrap !important;
+  width: 100% !important;
 }
 
 .attendance-table-card .checkout-row-btn {
