@@ -12,17 +12,16 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAuth = async () => {
-    const token = localStorage.getItem('accessToken');
-    if (token) {
-      try {
-        const response = await authService.getMe();
-        setUser(response.data.data.user);
-      } catch (error) {
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-      }
+    try {
+      const response = await authService.getMe();
+      setUser(response.data.data.user);
+    } catch (error) {
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      setUser(null);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const login = async (credentials) => {

@@ -6,6 +6,7 @@ let refreshPromise;
 
 const api = axios.create({
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -13,6 +14,7 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
+    config.withCredentials = true;
     const token = localStorage.getItem('accessToken');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -34,7 +36,7 @@ api.interceptors.response.use(
       originalRequest._retry = true;
       try {
         if (!refreshPromise) {
-          refreshPromise = axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken })
+          refreshPromise = axios.post(`${API_BASE_URL}/auth/refresh`, { refreshToken }, { withCredentials: true })
             .then((refreshResponse) => {
               const { accessToken, refreshToken: newRefreshToken } = refreshResponse.data.data;
               localStorage.setItem('accessToken', accessToken);

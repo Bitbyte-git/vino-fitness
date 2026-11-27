@@ -29,6 +29,17 @@ const serializeUser = (user, profile) => ({
   profile,
 });
 
+const getCookieOptions = (maxAgeMs) => {
+  const isProd = config.nodeEnv === 'production';
+  return {
+    httpOnly: true,
+    secure: isProd,
+    sameSite: isProd ? 'none' : 'lax',
+    maxAge: maxAgeMs,
+    path: '/',
+  };
+};
+
 // @desc    Register user
 // @route   POST /api/auth/register
 // @access  Public
@@ -98,6 +109,10 @@ exports.login = async (req, res, next) => {
       profile = await TrainerProfile.findOne({ user: user._id });
     }
 
+    // Set HttpOnly Cookies
+    res.cookie('accessToken', accessToken, getCookieOptions(15 * 60 * 1000)); // 15 mins
+    res.cookie('refreshToken', refreshToken, getCookieOptions(30 * 24 * 60 * 60 * 1000)); // 30 days
+
     res.status(200).json({
       success: true,
       data: {
@@ -146,7 +161,7 @@ exports.getMe = async (req, res, next) => {
 // @route   POST /api/auth/refresh
 // @access  Public
 exports.refreshToken = async (req, res, next) => {
-  const { refreshToken } = req.body;
+  const refreshToken = req.body?.refreshToken || req.cookies?.refreshToken;
   if (typeof refreshToken !== 'string' || !refreshToken) {
     return res.status(400).json({
       success: false,
@@ -190,6 +205,10 @@ exports.refreshToken = async (req, res, next) => {
       return res.status(401).json({ success: false, error: 'Refresh token has already been used' });
     }
 
+    // Update cookies
+    res.cookie('accessToken', accessToken, getCookieOptions(15 * 60 * 1000));
+    res.cookie('refreshToken', newRefreshToken, getCookieOptions(30 * 24 * 60 * 60 * 1000));
+
     res.status(200).json({
       success: true,
       data: {
@@ -209,6 +228,11 @@ exports.logout = async (req, res, next) => {
   try {
     await User.updateOne({ _id: req.user.id }, { $unset: { refreshTokenHash: 1 } });
     await require('../services/biometricAttendanceService').closeOperatorStations(req.user.id);
+    
+    // Clear cookies
+    res.clearCookie('accessToken', getCookieOptions(0));
+    res.clearCookie('refreshToken', getCookieOptions(0));
+
     res.status(200).json({
       success: true,
       message: 'Logged out successfully',

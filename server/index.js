@@ -1,4 +1,5 @@
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const cors = require('cors');
 const helmet = require('helmet');
 const { rateLimit } = require('express-rate-limit');
@@ -45,6 +46,7 @@ app.use(helmet({
   },
 }));
 app.use(cors(config.cors));
+app.use(cookieParser());
 // Template 64 KiB + optional image 512 KiB + Base64 overhead and metadata.
 app.use('/api/attendance/biometric', express.json({ limit: '100kb' }));
 app.use('/api/biometrics', express.json({ limit: '800kb' }));
