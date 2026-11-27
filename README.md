@@ -98,6 +98,4 @@ See `IMPLEMENTATION_AUDIT.md` for the module/file map and remaining acceptance i
 Reception scanner lifecycle, transactional attendance sessions, rollout and remaining trusted-identification dependencies: [BIOMETRIC_ATTENDANCE.md](BIOMETRIC_ATTENDANCE.md). Local Windows development now supports fingerprint-only template search with MORFIN Auth; remote production matching needs its trusted integration. Authorized manual attendance is preserved.
 
 
-Final Commit 
-
 System - Design Completed
