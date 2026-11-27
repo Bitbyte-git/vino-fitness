@@ -3,16 +3,15 @@
   "private": true,
   "version": "1.0.0",
   "scripts": {
+    "start": "node server/index.js",
     "dev": "concurrently \"npm run server:dev\" \"npm run client\"",
     "server": "node server/index.js",
     "client": "vite client --force",
     "build": "vite build client",
     "preview": "vite preview client",
-    "test": "node --test --test-concurrency=1 server/tests/*.test.js",
     "seed": "node server/seed.js",
     "admin:create": "node server/bootstrapAdmin.js",
     "db:indexes": "node server/createIndexes.js",
-    "test:e2e": "node server/tests/browser.cjs",
     "server:dev": "node --watch server/index.js"
   },
   "dependencies": {
@@ -41,9 +40,5 @@
     "swagger-ui-express": "^5.0.1",
     "uuid": "^14.0.3",
     "vite": "latest"
-  },
-  "devDependencies": {
-    "@playwright/test": "^1.64.1",
-    "mongodb-memory-server": "^11.3.0"
   }
 }

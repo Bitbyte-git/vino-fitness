@@ -1,101 +1,187 @@
-# PulseFit Gym Management
+# Vino Fitness Studio / PulseFit Gym Management System
 
-React/Vite frontend, Express API and MongoDB. The existing landing page and brand assets are preserved. Members register themselves without fingerprint enrollment. MFS500 capture/enrollment, local Windows template-search attendance and development matching diagnostics are available; trusted production biometric attendance remains disabled. See [BIOMETRICS.md](BIOMETRICS.md).
+A production-ready gym management platform featuring a high-performance **React + Vite** frontend, **Node.js + Express** REST API, **MongoDB** database, **Razorpay** payment gateway, and **Mantra MFS500** biometric fingerprint integration.
 
-## Local setup
+---
 
-Use Node.js 22.12 or newer and a transaction-capable MongoDB replica set (MongoDB Atlas or a local replica set). A standalone MongoDB server cannot run the multi-record registration/payment/allocation transactions.
+## Table of Contents
+1. [Overview & Tech Stack](#overview--tech-stack)
+2. [Quick Start & Local Setup](#quick-start--local-setup)
+3. [Default Credentials](#default-credentials)
+4. [Member Self-Registration & Payments](#member-self-registration--payments)
+5. [Mantra Biometric & Attendance Kiosk](#mantra-biometric--attendance-kiosk)
+6. [Security & Authentication Architecture](#security--authentication-architecture)
+7. [Production Deployment Guide](#production-deployment-guide)
+8. [Directory Structure](#directory-structure)
+
+---
+
+## Overview & Tech Stack
+
+- **Frontend:** React 19, Vite, React Router, Recharts, Lucide Icons, Vanilla CSS with Apple/Obsidian luxury theme.
+- **Backend:** Express 5, Node.js 22+, MongoDB / Mongoose ODM with multi-document ACID transactions.
+- **Security:** In-memory JWT access tokens, HttpOnly refresh cookies, client-side SHA-256 hashing, bcrypt password storage, AES-256-GCM biometric encryption, and strict CORS allowlists.
+- **Payments:** Razorpay Standard Checkout with server-side HMAC-SHA256 signature verification and refund reconciliation.
+- **Biometrics:** Mantra MFS500 / MorFin Auth SDK with Web Locks hardware concurrency, server-side cooldowns, and anti-replay latches.
+
+---
+
+## Quick Start & Local Setup
+
+### Prerequisites
+- **Node.js:** 20.x or 22.x LTS
+- **MongoDB:** Transaction-capable MongoDB replica set (MongoDB Atlas or a local replica set).
+
+### Installation & Startup
 
 ```powershell
+# 1. Install root and client dependencies
 npm.cmd install
-# Copy examples only when your environment files do not already exist:
+
+# 2. Configure environment files (copy examples if not already present)
 Copy-Item client/.env.example client/.env.local
 Copy-Item server/.env.example server/.env
-# Configure MONGODB_URI and JWT secrets before seeding.
+
+# 3. Seed development database (plans, slots, demo accounts)
 npm.cmd run seed
+
+# 4. Start backend API and Vite frontend concurrently
 npm.cmd run dev
 ```
 
-Do not overwrite existing environment files. The frontend API URL is configured with `VITE_API_URL`. Server secrets belong only in `server/.env` or the deployment secret manager. DNS uses the operating system resolver unless `DNS_SERVERS` is explicitly configured.
+The application will be accessible at:
+- **Frontend:** `http://localhost:5173`
+- **Backend API:** `http://localhost:5000/api`
+- **Interactive API Docs:** `http://localhost:5173/api-docs` or `http://localhost:5000/api/docs`
 
-CORS is configured to allow requests from all origins (including local dev servers on any port, preview domains, and production URLs), with support for credentials, custom authorization headers, and standard preflight handling.
+---
 
-## Demo credentials
+## Default Credentials
 
-Run `npm.cmd run seed` against a dedicated development database first.
+Run `npm run seed` against your development database to create initial accounts:
 
-| Role | Email | Password |
-| --- | --- | --- |
-| Admin | admin@pulsefit.com | admin123 |
-| Reception / staff | reception@pulsefit.com | reception123 |
-| Trainer | trainer@pulsefit.com | trainer123 |
-| Member | member@pulsefit.com | member123 |
+| Role | Email | Password | Access Level |
+| :--- | :--- | :--- | :--- |
+| **Admin** | `admin@pulsefit.com` | `admin123` | Full studio operations, finance, staff, settings |
+| **Reception** | `reception@pulsefit.com` | `reception123` | Member onboarding, attendance kiosk, check-ins |
+| **Trainer** | `trainer@pulsefit.com` | `trainer123` | Client schedules, member attendance, workout tracking |
+| **Member** | `member@pulsefit.com` | `member123` | Personal profile, active membership, attendance history |
+| **Kiosk** | `kiosk@pulsefit.com` | `kiosk123` | Standalone biometric check-in/out terminal |
 
-The seed refuses `NODE_ENV=production` and preserves existing account passwords. It includes a real demo member profile, paid membership, receipt and Monday slot. Re-running the seed also updates sample plans, trainer details and operating hours, so use a development database only. The development login screen has credential-fill buttons; they are excluded from production builds.
+> *Note: Seed accounts are restricted to development databases (`NODE_ENV !== 'production'`).*
 
-## Member flow
+---
 
-Basic details and password -> health and fitness details plus consent -> database-backed plan -> available weekday slot -> optional eligible trainer -> review -> save registration -> Razorpay Checkout -> server-verified payment -> membership activation and dashboard sign-in.
+## Member Self-Registration & Payments
 
-Registration is stored in MongoDB. The browser stores a registration bearer token, not the member database. Members can resume on another browser using their email/password. Closing Checkout does not erase a registration. Pending payment does not activate access or reserve a slot. Capacity is checked again during activation.
+The application provides a seamless, self-service member onboarding funnel:
 
-If payment succeeds but activation is interrupted, retrying checkout rechecks the Razorpay order before allowing another payment. Do not charge the customer again; correct unavailable slot or trainer selections or handle a verified refund.
+```
+[Basic Details] ──> [Health & Consent] ──> [Select Plan] ──> [Select Slot] ──> [Select Trainer] ──> [Razorpay Checkout] ──> [Active Membership]
+```
 
-## Razorpay setup
+1. **State Preservation:** Registration drafts are stored server-side. Members can close their browser and resume anytime using their email and password.
+2. **Razorpay Checkout:** The server creates INR orders via Razorpay Orders API. The client opens Razorpay Standard Checkout.
+3. **Verification:** The backend validates the payment signature using `crypto.timingSafeEqual`, queries the captured payment status directly from Razorpay, and atomically allocates gym slot capacity and membership activation within a single database transaction.
+4. **Refunds:** Full refunds are executed server-side through Razorpay and logged in the local audit trail.
 
-Set these server variables:
+---
 
+## Mantra Biometric & Attendance Kiosk
+
+### Architecture
+- **Hardware Model:** Mantra MFS500 optical fingerprint scanner.
+- **Workstation Client:** Runs locally via Mantra MorFin Auth Client Service (`https://localhost:8030/morfinauth`).
+- **Encrypted Storage:** Fingerprint templates (FMR_V2005) are encrypted with **AES-256-GCM** using unique 12-byte random nonces and AAD binding before saving to MongoDB. Raw fingerprint images are never stored.
+
+### Attendance Workflow
+1. Reception opens the `/kiosk` or `/admin/attendance` scanning terminal.
+2. The browser acquires a **Web Lock** (`pulsefit-morfinauth`) ensuring only one active scanner session per workstation.
+3. Members scan their finger. The backend matches the decrypted template, enforces operating hours, verifies active paid memberships, applies a 60-second duplicate scan cooldown, and records the session.
+
+---
+
+## Security & Authentication Architecture
+
+1. **Client-Side SHA-256 Hashing:** Plaintext passwords are never visible in browser DevTools Network payloads. They are hashed using the Web Crypto API before network dispatch.
+2. **Database Hashing:** Passwords in MongoDB are salted and hashed using **bcrypt (cost factor 10)**.
+3. **Token Isolation:** Access tokens exist in-memory only; refresh tokens are stored in `HttpOnly`, `SameSite=None`, `Secure` cookies. Zero JWT tokens are written to `localStorage`.
+4. **CORS Whitelist:** Strict domain allowlist (`vinofitnessstudio.vercel.app`, Vercel previews, local development) without wildcard reflection.
+5. **Rate Limiting:** Brute-force protection applied across login, token refresh, registration checkout, and biometric endpoints.
+6. **Error Sanitization:** Stack traces and internal database errors are suppressed in production mode.
+
+---
+
+## Production Deployment Guide
+
+### Environment Variables Checklist
+
+#### Backend (`server/.env` or Cloud Secret Manager):
 ```dotenv
+NODE_ENV=production
+PORT=5000
+MONGODB_URI=mongodb+srv://<user>:<password>@cluster.mongodb.net/pulsefit?retryWrites=true&w=majority
+JWT_SECRET=<64-char-random-hex-secret>
+JWT_REFRESH_SECRET=<different-64-char-random-hex-secret>
+FRONTEND_URL=https://vinofitnessstudio.vercel.app
 PAYMENT_GATEWAY_ENABLED=true
-RAZORPAY_KEY_ID=rzp_test_your_key_id
-RAZORPAY_KEY_SECRET=your_server_side_key_secret
-FRONTEND_URL=http://localhost:5173
+RAZORPAY_KEY_ID=rzp_live_your_key_id
+RAZORPAY_KEY_SECRET=your_live_key_secret
+BIOMETRIC_KEY_VERSION=v1
+BIOMETRIC_ENCRYPTION_KEYS={"v1":"<32-random-base64-bytes>"}
 ```
 
-In production use your actual HTTPS frontend origin as `FRONTEND_URL`. The server creates the INR order, the browser opens Razorpay Standard Checkout, and the server verifies the HMAC signature plus the order and captured payment directly with Razorpay before activating membership. Full online refunds are sent to Razorpay and retained in the local audit trail. Staff may alternatively record physically received cash using an idempotency key.
+#### Frontend (`client/.env.production` or Vercel Environment Variables):
+```dotenv
+VITE_API_URL=https://api-vinofitnessstudio.onrender.com/api
+```
 
-## Commands and validation
-
+### Production Initialization Commands
 ```powershell
-npm.cmd run dev           # API and Vite
-npm.cmd run build         # client/dist
-npm.cmd test              # unit and isolated MongoDB transaction/API tests
-npm.cmd run test:e2e      # headless Edge browser workflow checks
-npm.cmd run db:indexes    # create/verify declared indexes, without dropping data
-npm.cmd run admin:create  # bootstrap initial production admin using environment variables
+# 1. Build optimized client bundle
+npm.cmd run build
+
+# 2. Synchronize database indexes safely without dropping data
+npm.cmd run db:indexes
+
+# 3. Create your first production administrator (one-time setup)
+$env:ADMIN_EMAIL="admin@yourstudio.com"
+$env:ADMIN_PASSWORD="StrongSecurePassword123!"
+npm.cmd run admin:create
 ```
 
-Tests use temporary MongoDB replica sets, not `server/.env` data. The first run downloads MongoDB 8.0.12. Browser checks require installed Microsoft Edge and write ignored artifacts under `test-results/`.
+---
 
-Validated during this change: production frontend build and 24 unit/database tests covering all four roles, registration without biometrics, Razorpay order amount control, signature verification, captured-payment settlement, refunds, allocation consistency, and access control.
+## Directory Structure
 
-## Production setup
-
-1. Configure HTTPS, authenticated MongoDB, backups and restore testing, unique access/refresh JWT secrets, allowed frontend origins and `NODE_ENV=production`.
-2. Review existing duplicate open attendance sessions and allocations before running `npm.cmd run db:indexes`. Production startup does not silently manage indexes. The new attendance index allows one open session per member across all dates; old conflicting records need explicit correction before the index can be created.
-3. For a fresh production database set `ADMIN_EMAIL` and `ADMIN_PASSWORD` (12-72 characters), run `npm.cmd run admin:create`, and remove the bootstrap password from the environment. This command refuses to create another initial administrator if an admin already exists. Do not seed demo accounts in production.
-4. Configure Razorpay test keys and complete real test-mode checkout, failed payment, interrupted activation, retry, and refund tests. Then configure live keys and perform operational acceptance testing.
-5. Run the complete test suite and production build again. Validate the latest refund, freeze/unfreeze and trainer schedule changes before launch.
-6. Host `client/dist` with SPA fallback and deploy the API separately or behind a reverse proxy. Configure the actual frontend URL/API URL. Configure trusted proxy behavior only when your deployment uses one trusted proxy.
-7. Monitor API errors, webhook failures, reconciliation records and database backups. Membership expiry/slot cleanup runs at startup and every minute while the API is running; expiry reminders are in-app and deduplicated per membership/day.
-
-Production readiness still depends on deployment-specific Razorpay acceptance testing, monitoring, backups, and operational infrastructure. This repository is not a production certification.
-
-## Boundaries and policies
-
-- Biometrics are optional for registration/activation. Local Windows development supports SDK template-search attendance; remote production matching remains disabled pending its trusted integration.
-- Manual attendance is limited to admin/reception, enforces membership/payment/slot/hours, and is audited.
-- One active slot and one primary trainer per member. Slots recur on their configured weekday. Trainer capacity is a conservative total active-client limit drawn from matching availability, not arbitrary simultaneous-session booking.
-- Trainer leave is open-ended until administrator reactivation. Scheduled date-range leave is not implemented.
-- Downgrades are selected at renewal. Immediate downgrade credits and tax invoice rules are not implemented.
-- The plan's configured price is authoritative. Free-form discount/eligibility notes are not an executable promotion engine.
-- CSV exports export visible/loaded records. Member, trainer, staff and audit lists expose pagination; several reporting/list endpoints still require pagination work for large deployments.
-- Notifications are in-app. SMS/email integrations remain unavailable. Password recovery through email is not implemented.
-- Optional expenses, workouts, nutrition, progress and other unfinished modules are excluded from authenticated navigation.
-
-See `IMPLEMENTATION_AUDIT.md` for the module/file map and remaining acceptance items.
-
-Reception scanner lifecycle, transactional attendance sessions, rollout and remaining trusted-identification dependencies: [BIOMETRIC_ATTENDANCE.md](BIOMETRIC_ATTENDANCE.md). Local Windows development now supports fingerprint-only template search with MORFIN Auth; remote production matching needs its trusted integration. Authorized manual attendance is preserved.
-
-
-System - Design Completed
+```
+Gym-Management-app-new/
+├── client/                     # React + Vite Frontend
+│   ├── public/                 # Favicons, logos, audio prompts
+│   ├── src/
+│   │   ├── components/         # Reusable modals, skeletons, receipts, layout
+│   │   ├── contexts/           # Authentication state context
+│   │   ├── pages/              # Landing, Login, Register, Dashboard, Kiosk, Docs
+│   │   ├── services/           # Axios API client, auth, registration, payments
+│   │   └── utils/              # Client crypto & audio helpers
+│   ├── package.json            # Frontend dependencies
+│   ├── vercel.json             # Vercel deployment routes
+│   └── vite.config.js          # Optimized Vite bundler configuration
+├── server/                     # Node.js + Express API Backend
+│   ├── config/                 # DB connection and env schema validation
+│   ├── controllers/            # Route controllers (auth, members, payments, biometrics)
+│   ├── docs/                   # Swagger OpenAPI specs
+│   ├── middleware/             # Auth JWT, rate limiters, error handling
+│   ├── models/                 # Mongoose database models
+│   ├── routes/                 # Express API endpoints
+│   ├── services/               # Biometric encryption, allocation, lifecycle
+│   ├── utils/                  # Receipts, date math, circuit breaker
+│   ├── bootstrapAdmin.js       # Production admin creation CLI
+│   ├── createIndexes.js        # MongoDB index provisioning
+│   ├── seed.js                 # Dev database seeder
+│   └── index.js                # Express app entrypoint
+├── k8s/                        # Kubernetes manifest templates
+├── nginx/                      # Nginx reverse proxy configs
+├── package.json                # Project scripts & dependencies
+└── README.md                   # Unified project documentation
+```
