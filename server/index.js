@@ -37,6 +37,12 @@ app.disable('x-powered-by');
 if (config.trustProxy) app.set('trust proxy', 1);
 app.use(helmet({
   crossOriginResourcePolicy: { policy: 'cross-origin' },
+  contentSecurityPolicy: {
+    directives: {
+      ...helmet.contentSecurityPolicy.getDefaultDirectives(),
+      'frame-ancestors': ["'self'", 'https://vinofitnessstudio.vercel.app', 'http://localhost:5173', 'http://127.0.0.1:5173'],
+    },
+  },
 }));
 app.use(cors(config.cors));
 // Template 64 KiB + optional image 512 KiB + Base64 overhead and metadata.
