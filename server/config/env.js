@@ -8,6 +8,7 @@ const configuredOrigins = (process.env.FRONTEND_URL || '*')
   .filter(Boolean);
 const productionAllowedOrigins = [
   'https://gym-management-app-wine-ten.vercel.app',
+  'https://vinofitnessstudio.vercel.app',
   /https:\/\/.*\.vercel\.app$/,
 ];
 const localDevelopmentOrigins = [

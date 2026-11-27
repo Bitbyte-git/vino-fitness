@@ -75,6 +75,7 @@ test('CORS preflight and actual requests allow all origins', async (t) => {
 
   const testOrigins = [
     'https://gym-management-app-wine-ten.vercel.app',
+    'https://vinofitnessstudio.vercel.app',
     'https://preview-deploy.vercel.app',
     'http://localhost:3000',
     'http://localhost:5175',
