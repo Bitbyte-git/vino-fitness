@@ -1,26 +1,45 @@
-import { useEffect, useState } from 'react';
-import SwaggerUI from 'swagger-ui-react';
-import 'swagger-ui-react/swagger-ui.css';
+import { useEffect, useRef, useState } from 'react';
 
 export default function ApiDocs() {
-  const [spec, setSpec] = useState(null);
-  const [error, setError] = useState(null);
+  const containerRef = useRef(null);
+  const [loaded, setLoaded] = useState(false);
 
   const backendBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
   const jsonUrl = `${backendBaseUrl}/api-docs.json`;
   const directDocsUrl = `${backendBaseUrl}/api-docs/`;
 
   useEffect(() => {
-    fetch(jsonUrl)
-      .then(res => {
-        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
-        return res.json();
-      })
-      .then(data => setSpec(data))
-      .catch(err => {
-        console.warn('Could not fetch from backend directly, loading fallback spec:', err);
-        setError(err.message);
-      });
+    // Inject Swagger UI CDN CSS
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/swagger-ui-dist@5/swagger-ui.css';
+    document.head.appendChild(link);
+
+    // Inject Swagger UI Bundle script
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js';
+    script.crossOrigin = 'anonymous';
+    script.onload = () => {
+      if (window.SwaggerUIBundle && containerRef.current) {
+        window.SwaggerUIBundle({
+          url: jsonUrl,
+          domNode: containerRef.current,
+          deepLinking: true,
+          presets: [
+            window.SwaggerUIBundle.presets.apis,
+          ],
+        });
+        setLoaded(true);
+      }
+    };
+    document.body.appendChild(script);
+
+    return () => {
+      try {
+        if (link.parentNode) link.parentNode.removeChild(link);
+        if (script.parentNode) script.parentNode.removeChild(script);
+      } catch {}
+    };
   }, [jsonUrl]);
 
   return (
@@ -72,37 +91,23 @@ export default function ApiDocs() {
         </div>
       </header>
 
-      <main style={{ flex: 1, padding: '20px', maxWidth: '1300px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
-        {spec ? (
-          <div className="swagger-native-wrapper" style={{ borderRadius: '12px', overflow: 'hidden', background: '#ffffff', padding: '16px' }}>
-            <SwaggerUI spec={spec} />
-          </div>
-        ) : error ? (
-          <div style={{ textAlign: 'center', padding: '60px 20px' }}>
-            <h3 style={{ color: '#ff6b72', marginBottom: '12px' }}>Loading Swagger Specification...</h3>
-            <p style={{ color: '#889082', marginBottom: '24px' }}>Unable to load specification from {jsonUrl} ({error}).</p>
-            <a
-              href={directDocsUrl}
-              target="_blank"
-              rel="noreferrer"
-              style={{
-                fontSize: '14px',
-                color: '#101400',
-                background: '#d4ff00',
-                padding: '10px 20px',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                fontWeight: 700
-              }}
-            >
-              Open Backend Swagger Server Directly ↗
-            </a>
-          </div>
-        ) : (
-          <div style={{ textAlign: 'center', padding: '60px 20px', color: '#889082' }}>
-            <p>Loading API Documentation...</p>
-          </div>
-        )}
+      <main style={{ flex: 1, padding: '24px 20px', maxWidth: '1300px', width: '100%', margin: '0 auto', boxSizing: 'border-box' }}>
+        <div
+          ref={containerRef}
+          style={{
+            background: '#ffffff',
+            borderRadius: '12px',
+            overflow: 'hidden',
+            padding: '16px',
+            minHeight: '600px'
+          }}
+        >
+          {!loaded && (
+            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#333333' }}>
+              <p>Loading API Documentation from {jsonUrl}...</p>
+            </div>
+          )}
+        </div>
       </main>
     </div>
   );
