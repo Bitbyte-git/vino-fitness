@@ -5,6 +5,7 @@ import { registrationService } from '../services';
 import { openRazorpayCheckout } from '../services/razorpay';
 import { Brand } from '../components/Brand';
 import { DEFAULT_AVATARS } from '../data';
+import { hashPassword } from '../utils/crypto';
 
 const STEPS = [
   { id: 'basic', title: 'Basic Details', icon: User },
@@ -200,7 +201,12 @@ export default function Register() {
     }
 
     try {
-      await registrationService.saveBasicDetails(basicData);
+      const hashedPassword = await hashPassword(basicData.password);
+      await registrationService.saveBasicDetails({
+        ...basicData,
+        password: hashedPassword,
+        confirmPassword: hashedPassword,
+      });
       setLoading(false);
       setCurrentStep(1);
     } catch (err) {
@@ -313,7 +319,12 @@ export default function Register() {
   };
   const resume = async (event) => {
     event.preventDefault(); setLoading(true); setError('');
-    try { await registrationService.resume({ email: basicData.email, password: basicData.password }); await restoreDraft(); setResumeMode(false); }
+    try {
+      const hashedPassword = await hashPassword(basicData.password);
+      await registrationService.resume({ email: basicData.email, password: hashedPassword });
+      await restoreDraft();
+      setResumeMode(false);
+    }
     catch (err) { setError(err.response?.data?.error || 'Unable to resume registration'); }
     finally { setLoading(false); }
   };

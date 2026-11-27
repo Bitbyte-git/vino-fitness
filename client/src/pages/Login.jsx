@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, ArrowRight, Eye, EyeOff, Loader2, Crown, Headphones, Dumbbell, UserRound, Fingerprint } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Brand } from '../components/Brand';
+import { hashPassword } from '../utils/crypto';
 import '../luxury-pages.css';
 
 const DEMO_ACCOUNTS = [
@@ -29,7 +30,8 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const user = await login(credentials);
+      const hashedPassword = await hashPassword(credentials.password);
+      const user = await login({ ...credentials, password: hashedPassword });
 
       if (user.role === 'admin') {
         nav('/admin/dashboard');
