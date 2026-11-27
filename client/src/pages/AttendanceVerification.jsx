@@ -77,6 +77,7 @@ export default function AttendanceVerification({ standalone = true }) {
         memberId: data.member.memberId || '',
         profilePicture: data.member.profilePicture || null,
         avatarInitials: data.member.avatarInitials,
+        personType: data.member.personType || 'member',
         action: data.action || 'Check in',
         time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
         session: (data.sessionName || getSessionName()).toLowerCase().replace(' session', ''),
@@ -115,6 +116,7 @@ export default function AttendanceVerification({ standalone = true }) {
               memberId: latestEvent.member.memberId || '',
               profilePicture: latestEvent.member.profilePicture || null,
               avatarInitials: latestEvent.member.avatarInitials,
+              personType: latestEvent.member.personType || 'member',
               action: latestEvent.action === 'checkout' ? 'Check out' : 'Check in',
               time: new Date(latestEvent.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
               session: getSessionName().toLowerCase().replace(' session', ''),
@@ -532,6 +534,11 @@ export default function AttendanceVerification({ standalone = true }) {
               <div className="recent-punch-details">
                 <div className="recent-punch-line1">
                   <b>{lastPunch.name}</b>
+                  {lastPunch.personType && lastPunch.personType !== 'member' && (
+                    <span className={`attendee-role-badge ${lastPunch.personType === 'trainer' ? 'role-badge-trainer' : 'role-badge-staff'}`}>
+                      {lastPunch.personType === 'trainer' ? 'TRAINER' : 'STAFF'}
+                    </span>
+                  )}
                   <span className={`kiosk-punch-pill ${lastPunch.action.toLowerCase().includes('in') ? 'checkin' : 'checkout'}`}>
                     {lastPunch.action.toLowerCase().includes('in') ? <ArrowDownRight size={12} /> : <ArrowUpRight size={12} />}
                     {lastPunch.action.toUpperCase()}

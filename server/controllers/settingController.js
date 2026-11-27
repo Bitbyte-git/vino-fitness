@@ -7,12 +7,133 @@ const validateSetting = (key, value) => {
 };
 const SystemSetting = require('../models/SystemSetting');
 
+const defaultSettings = [
+  // General settings
+  {
+    key: 'gym_name',
+    value: 'Vino Fitness Studio',
+    category: 'general',
+    description: 'Gym name displayed throughout the application',
+    isEditable: true,
+  },
+  {
+    key: 'gym_address',
+    value: 'MG Road, Bengaluru',
+    category: 'general',
+    description: 'Gym physical address',
+    isEditable: true,
+  },
+  {
+    key: 'gym_phone',
+    value: '+91 98765 43210',
+    category: 'general',
+    description: 'Gym contact phone number',
+    isEditable: true,
+  },
+  {
+    key: 'gym_email',
+    value: 'contact@vinofitness.com',
+    category: 'general',
+    description: 'Gym contact email',
+    isEditable: true,
+  },
+  // Payment settings
+  {
+    key: 'payment_gateway_enabled',
+    value: false,
+    category: 'payment',
+    description: 'Enable online payment gateway',
+    isEditable: true,
+  },
+  {
+    key: 'allow_partial_payments',
+    value: false,
+    category: 'payment',
+    description: 'Allow members to pay in installments',
+    isEditable: true,
+  },
+  {
+    key: 'payment_due_grace_period',
+    value: 7,
+    category: 'payment',
+    description: 'Grace period in days before payment overdue',
+    isEditable: true,
+  },
+  // Attendance settings
+  {
+    key: 'allow_manual_attendance',
+    value: true,
+    category: 'attendance',
+    description: 'Allow manual attendance entry by reception',
+    isEditable: true,
+  },
+  {
+    key: 'attendance_correction_window',
+    value: 24,
+    category: 'attendance',
+    description: 'Hours after which attendance cannot be corrected',
+    isEditable: true,
+  },
+  {
+    key: 'enforce_slot_timing',
+    value: true,
+    category: 'attendance',
+    description: 'Enforce strict time slot check-in rules',
+    isEditable: true,
+  },
+  // Membership settings
+  {
+    key: 'auto_renew_membership',
+    value: false,
+    category: 'membership',
+    description: 'Automatically renew membership on expiry',
+    isEditable: true,
+  },
+  {
+    key: 'membership_expiry_reminder_days',
+    value: 7,
+    category: 'membership',
+    description: 'Days before expiry to send reminder',
+    isEditable: true,
+  },
+  // Biometric settings
+  {
+    key: 'biometric_required',
+    value: false,
+    category: 'biometric',
+    description: 'Require biometric enrollment for registration',
+    isEditable: true,
+  },
+  {
+    key: 'biometric_device_enabled',
+    value: false,
+    category: 'biometric',
+    description: 'Enable biometric device for check-in',
+    isEditable: true,
+  },
+];
+
 // @desc    Get all system settings
 // @route   GET /api/settings
 // @access  Private (Admin)
 exports.getSettings = async (req, res, next) => {
   try {
     const { category } = req.query;
+
+    // Auto-seed default settings if database is empty so Settings table is immediately populated
+    const count = await SystemSetting.countDocuments();
+    if (count === 0) {
+      const adminId = (req.user && (req.user.id || req.user._id)) || undefined;
+      await Promise.all(defaultSettings.map(setting => {
+        const payload = { ...setting };
+        if (adminId) payload.updatedBy = adminId;
+        return SystemSetting.findOneAndUpdate(
+          { key: setting.key },
+          { $setOnInsert: payload },
+          { upsert: true, returnDocument: 'after' }
+        );
+      }));
+    }
     
     let query = {};
     if (category) {
@@ -185,117 +306,16 @@ exports.deleteSetting = async (req, res, next) => {
 // @access  Private (Admin)
 exports.initializeDefaultSettings = async (req, res, next) => {
   try {
-    const defaultSettings = [
-      // General settings
-      {
-        key: 'gym_name',
-        value: 'Vino Fitness Studio',
-        category: 'general',
-        description: 'Gym name displayed throughout the application',
-        isEditable: true,
-      },
-      {
-        key: 'gym_address',
-        value: 'MG Road, Bengaluru',
-        category: 'general',
-        description: 'Gym physical address',
-        isEditable: true,
-      },
-      {
-        key: 'gym_phone',
-        value: '',
-        category: 'general',
-        description: 'Gym contact phone number',
-        isEditable: true,
-      },
-      {
-        key: 'gym_email',
-        value: '',
-        category: 'general',
-        description: 'Gym contact email',
-        isEditable: true,
-      },
-      // Payment settings
-      {
-        key: 'payment_gateway_enabled',
-        value: false,
-        category: 'payment',
-        description: 'Enable online payment gateway',
-        isEditable: true,
-      },
-      {
-        key: 'allow_partial_payments',
-        value: false,
-        category: 'payment',
-        description: 'Allow members to pay in installments',
-        isEditable: true,
-      },
-      {
-        key: 'payment_due_grace_period',
-        value: 7,
-        category: 'payment',
-        description: 'Grace period in days before payment overdue',
-        isEditable: true,
-      },
-      // Attendance settings
-      {
-        key: 'allow_manual_attendance',
-        value: true,
-        category: 'attendance',
-        description: 'Allow manual attendance entry by reception',
-        isEditable: true,
-      },
-      {
-        key: 'attendance_correction_window',
-        value: 24,
-        category: 'attendance',
-        description: 'Hours after which attendance cannot be corrected',
-        isEditable: true,
-      },
-      {
-        key: 'enforce_slot_timing',
-        value: true,
-        category: 'attendance',
-        description: 'Enforce strict time slot check-in rules',
-        isEditable: true,
-      },
-      // Membership settings
-      {
-        key: 'auto_renew_membership',
-        value: false,
-        category: 'membership',
-        description: 'Automatically renew membership on expiry',
-        isEditable: true,
-      },
-      {
-        key: 'membership_expiry_reminder_days',
-        value: 7,
-        category: 'membership',
-        description: 'Days before expiry to send reminder',
-        isEditable: true,
-      },
-      // Biometric settings
-      {
-        key: 'biometric_required',
-        value: false,
-        category: 'biometric',
-        description: 'Require biometric enrollment for registration',
-        isEditable: true,
-      },
-      {
-        key: 'biometric_device_enabled',
-        value: false,
-        category: 'biometric',
-        description: 'Enable biometric device for check-in',
-        isEditable: true,
-      },
-    ];
-
-    const created = await Promise.all(defaultSettings.map((setting) => SystemSetting.findOneAndUpdate(
-      { key: setting.key },
-      { $setOnInsert: { ...setting, updatedBy: req.user.id } },
-      { upsert: true, returnDocument: 'after', runValidators: true }
-    )));
+    const adminId = (req.user && (req.user.id || req.user._id)) || undefined;
+    const created = await Promise.all(defaultSettings.map((setting) => {
+      const payload = { ...setting };
+      if (adminId) payload.updatedBy = adminId;
+      return SystemSetting.findOneAndUpdate(
+        { key: setting.key },
+        { $setOnInsert: payload },
+        { upsert: true, returnDocument: 'after' }
+      );
+    }));
 
     res.status(201).json({
       success: true,

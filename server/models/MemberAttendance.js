@@ -11,7 +11,28 @@ const memberAttendanceSchema = new mongoose.Schema({
   member: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'MemberProfile',
-    required: true,
+    required: false,
+  },
+  trainer: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'TrainerProfile',
+    required: false,
+  },
+  user: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: false,
+  },
+  personType: {
+    type: String,
+    enum: ['member', 'trainer', 'reception'],
+    default: 'member',
+  },
+  personName: {
+    type: String,
+  },
+  personCode: {
+    type: String,
   },
   attendanceDate: {
     type: Date,

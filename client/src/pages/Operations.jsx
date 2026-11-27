@@ -1,7 +1,7 @@
-import { Fragment, useEffect, useState } from 'react';
+import { Fragment, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../services';
-import { CalendarDays, Loader2, Plus, RefreshCw, Download, Fingerprint, SlidersHorizontal, RotateCcw, Search, X, CheckCircle2, AlertCircle, CreditCard, LogOut, Clock, Flame, UserRound, Edit3, AlertTriangle } from 'lucide-react';
+import { CalendarDays, Loader2, Plus, RefreshCw, Download, Fingerprint, SlidersHorizontal, RotateCcw, Search, X, CheckCircle2, AlertCircle, CreditCard, LogOut, Clock, Clock3, Target, Flame, UserRound, Edit3, AlertTriangle, ChevronDown, Award, Dumbbell, MapPin, Phone, Mail, ShieldCheck, Sparkles, HeartPulse, User, Calendar, Bell, ChevronRight, Check, ArrowRight } from 'lucide-react';
 import { openRazorpayCheckout } from '../services/razorpay';
 import PaymentReceipt from '../components/PaymentReceipt';
 import MemberProfileModal from '../components/MemberProfileModal';
@@ -25,14 +25,14 @@ const person = [field('fullName', 'Full name'), field('mobileNumber', 'Mobile nu
 const profileFields = [...person, field('address', 'Address'), field('emergencyContactName', 'Emergency contact'), field('emergencyContactPhone', 'Emergency phone', 'tel'), field('height', 'Height (cm)', 'number'), field('weight', 'Weight (kg)', 'number')];
 const modules = {
   members: { url: '/members', key: 'members', columns: ['fullName', 'memberId', 'mobileNumber', 'registrationStatus', 'membershipStatus'], edit: profileFields },
-  trainers: { url: '/trainers', key: 'trainers', columns: ['fullName', 'trainerId', 'gender', 'specialization', 'experience', 'convenientTimings', 'status'],
+  trainers: { url: '/trainers', key: 'trainers', columns: ['fullName', 'gender', 'specialization', 'experience', 'convenientTimings', 'status'],
     create: [...person, field('gender', 'Gender', 'select', ['male', 'female', 'other']), field('email', 'Email', 'email'), field('password', 'Initial password (8–72 characters)', 'password'), field('specialization', 'Specialization'), field('experience', 'Experience in years', 'number'), field('workingDays', 'Working days', 'days'), field('convenientTimings', 'Convenient timings', 'checks', ['morning', 'afternoon', 'evening'])],
     edit: [...person, field('gender', 'Gender', 'select', ['male', 'female', 'other']), field('specialization', 'Specialization'), field('experience', 'Experience in years', 'number'), field('workingDays', 'Working days', 'days'), field('convenientTimings', 'Convenient timings', 'checks', ['morning', 'afternoon', 'evening'])] },
   plans: { url: '/membership-plans', columns: ['name', 'duration', 'price', 'status'],
     create: [field('name', 'Plan name'), field('description', 'Description'), field('duration', 'Duration in months', 'number'), field('price', 'Price (INR)', 'number'), field('facilities', 'Included services (comma separated)', 'list')],
     edit: [field('name', 'Plan name'), field('description', 'Description'), field('duration', 'Duration in months', 'number'), field('price', 'Price (INR)', 'number'), field('facilities', 'Included services (comma separated)', 'list'), field('status', 'Status', 'select', ['active', 'inactive'])] },
   memberships: { url: '/memberships', columns: ['member', 'membershipPlan', 'startDate', 'endDate', 'pendingAmount', 'status', 'paymentStatus'], create: [member, plan, slot] },
-  membership: { url: '/memberships', columns: ['membershipPlan', 'startDate', 'endDate', 'pendingAmount', 'status', 'paymentStatus'] },
+  membership: { url: '/memberships', columns: ['membershipPlan', 'startDate', 'endDate', 'pendingAmount', 'status', 'paymentStatus'], create: [plan, slot, field('trainerId', 'Trainer (leave blank for none)', 'trainers', true)] },
   attendance: { url: '/attendance', columns: ['member', 'sessionName', 'checkInTime', 'checkOutTime', 'duration', 'attendanceStatus', 'deviceId'] },
   payments: { url: '/payments', columns: ['member', 'transactionId', 'amount', 'paymentMethod', 'paymentStatus', 'whatsappStatus', 'paymentDate'] },
   allocations: { url: '/trainer-allocations', columns: ['member', 'trainer', 'startDate', 'endDate', 'status'], create: [member, trainer, field('notes', 'Notes', 'optional')] },
@@ -106,8 +106,17 @@ const customLabels = {
   attendanceStatus: 'Studio Status',
   deviceId: 'Terminal / Scanner',
   duration: 'Gym Time',
+  fitnessGoal: 'Purpose / Goal',
+  dailyGymTime: 'Daily Gym Time',
+  requestStatus: 'Approval Status',
+  breakStartTime: 'Break Start',
+  breakEndTime: 'Break End',
+  maxClients: 'Capacity',
 };
 const label = (value, currentSection) => {
+  if (currentSection === 'attendance' && value === 'member') return 'Attendee';
+  if (currentSection === 'trainers' && value === 'fullName') return 'Trainer';
+  if (currentSection === 'members' && value === 'fullName') return 'Member';
   if (currentSection === 'plans' && value === 'duration') return 'Duration';
   return customLabels[value] || value.replace(/([a-z])([A-Z])/g, '$1 $2').replaceAll('_', ' ').replace(/^./, s => s.toUpperCase());
 };
@@ -125,7 +134,10 @@ const displayClock = value => {
   return `${String(hour12).padStart(2, '0')}:${m} ${ampm}`;
 };
 const choiceText = (option, type) => {
-  if (type === 'slots') return `${option.name} · ${displayClock(option.startTime)} – ${displayClock(option.endTime)}`;
+  if (type === 'slots') {
+    const isFull = option.maxCapacity > 0 && option.currentCapacity >= option.maxCapacity;
+    return `${option.name} · ${displayClock(option.startTime)} – ${displayClock(option.endTime)}${isFull ? ' (Full)' : ''}`;
+  }
   if (type === 'plans') return `${option.name} · ₹${Number(option.price || 0).toLocaleString('en-IN')}${option.duration ? ` (${option.duration}m)` : ''}`;
   return `${option.fullName || option.name || option.member?.fullName || option._id}${option.membershipPlan?.name ? ` · ${option.membershipPlan.name}` : ''}${option.pendingAmount != null ? ` · INR ${option.pendingAmount} due` : ''}`;
 };
@@ -193,6 +205,7 @@ export default function Operations({ section, user, query = '' }) {
   const [attendancePopup, setAttendancePopup] = useState(null);
   const [fingerprintMember, setFingerprintMember] = useState(null);
   const [planMember, setPlanMember] = useState(null);
+  const [scheduleRequests, setScheduleRequests] = useState([]);
 
   // Dedicated member search & fingerprint identification state
   const [memberSearch, setMemberSearch] = useState(query || '');
@@ -372,6 +385,7 @@ export default function Operations({ section, user, query = '' }) {
         if (section === 'reports') url = `/reports/${report}`;
         if (user.role === 'trainer' && section === 'members') url = `/trainer-allocations/trainer/${user.profile?._id}`;
         if (user.role === 'trainer' && section === 'availability') url = `/trainer-availabilities/trainer/${user.profile?._id}`;
+        if (user.role === 'trainer' && section === 'attendance') url = `/attendance/trainer/${user.profile?._id}`;
         if (user.role === 'member' && section === 'membership') url = `/memberships/history/${user.profile?._id}`;
         if (user.role === 'member' && ['payments', 'attendance'].includes(section)) url = `/${section}/member/${user.profile?._id}`;
         if (section === 'coach') url = `/trainer-allocations/member/${user.profile?._id}`;
@@ -402,8 +416,36 @@ export default function Operations({ section, user, query = '' }) {
           list = Array.isArray(data) ? data : Object.values(data).find(Array.isArray) || [];
           setSummary(data.summary || null);
         }
+        if (section === 'settings' && list.length === 0 && active && isAdmin) {
+          try {
+            await api.post('/settings/initialize');
+            const retryRes = await api.get('/settings');
+            list = unpack(retryRes.data?.data, 'settings');
+          } catch {
+            // ignore fallback
+          }
+        }
         setRows(list); setPagination(data?.pagination || null);
-      } catch (err) { if (active) setError(err.response?.data?.error || 'Could not load records'); }
+        if (section === 'availability') {
+          try {
+            const reqRes = await api.get('/trainer-availabilities/requests', { params: { status: 'pending' } });
+            if (active) setScheduleRequests(reqRes.data?.data || []);
+          } catch {
+            if (active) setScheduleRequests([]);
+          }
+        } else {
+          if (active) setScheduleRequests([]);
+        }
+      } catch (err) {
+        if (active) {
+          if (user.role === 'member' && section === 'coach' && err.response?.status === 404) {
+            setRows([]);
+            setError('');
+          } else {
+            setError(err.response?.data?.error || 'Could not load records');
+          }
+        }
+      }
       finally { if (active) setLoading(false); }
     };
     load(); return () => { active = false; };
@@ -423,7 +465,7 @@ export default function Operations({ section, user, query = '' }) {
     const needed = [...new Set(fields.map(f => f.type).filter(type => ['members', 'trainers', 'plans', 'slots', 'memberships'].includes(type)))];
     try {
       const entries = await Promise.all(needed.map(async type => {
-        const response = await api.get({ members: '/members', trainers: '/trainers', plans: '/membership-plans', slots: '/time-slots', memberships: '/memberships' }[type], { params: { limit: 100, dayOfWeek: type === 'slots' ? 'monday' : undefined } });
+        const response = await api.get({ members: '/members', trainers: user?.role === 'member' ? '/registration/trainers' : '/trainers', plans: '/membership-plans', slots: '/time-slots', memberships: '/memberships' }[type], { params: { limit: 100, dayOfWeek: type === 'slots' ? 'monday' : undefined } });
         let items = unpack(response.data.data, type);
         if (type === 'slots') {
           const seen = new Set();
@@ -450,6 +492,33 @@ export default function Operations({ section, user, query = '' }) {
       setMemberSlot(null);
     } finally { setSlotLoading(false); }
   };
+  const handleApproveScheduleRequest = async (requestId) => {
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const res = await api.post(`/trainer-availabilities/requests/${requestId}/approve`, { adminComment: 'Approved by Admin' });
+      setNotice(res.data?.message || 'Schedule request approved and applied!');
+      setRevision(v => v + 1);
+    } catch (err) {
+      setError(err.response?.data?.error || err.response?.data?.message || 'Failed to approve schedule request');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleRejectScheduleRequest = async (requestId) => {
+    const reason = window.prompt('Enter reason for declining request (optional):');
+    if (reason === null) return;
+    setBusy(true); setError(''); setNotice('');
+    try {
+      const res = await api.post(`/trainer-availabilities/requests/${requestId}/reject`, { adminComment: reason });
+      setNotice(res.data?.message || 'Schedule request declined.');
+      setRevision(v => v + 1);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to decline schedule request');
+    } finally {
+      setBusy(false);
+    }
+  };
   const submit = async event => {
     event.preventDefault(); setBusy(true); setError('');
     try {
@@ -457,6 +526,12 @@ export default function Operations({ section, user, query = '' }) {
       for (const f of action.fields) {
         const v = values[f.name];
         body[f.name] = f.type === 'number' ? Number(v) : f.type === 'list' ? v.split(',').map(s => s.trim()).filter(Boolean) : f.type === 'checkbox' ? Boolean(v) : v;
+      }
+      if (action.url.includes('/request-change')) {
+        if (values.availabilityId) body.availabilityId = values.availabilityId;
+        if (values.dayOfWeek) body.dayOfWeek = values.dayOfWeek;
+        if (values.trainerId) body.trainerId = values.trainerId;
+        if (!body.trainerId && user.profile?._id) body.trainerId = user.profile._id;
       }
       if (section === 'hours') body.sessions = (values.sessions || []).map(({ name, startTime, endTime }) => ({ name, startTime, endTime }));
       if (section === 'slots' && action.method === 'post') body.dayOfWeek = 'monday';
@@ -467,6 +542,14 @@ export default function Operations({ section, user, query = '' }) {
         else body.checkOutTime = null;
       }
       if (action.url === '/payments') { body.paymentMethod = 'cash'; body.cashReceived = Boolean(values.cashReceived); }
+      if (values.slotId) {
+        const chosenSlot = (choices.slots || []).find(s => s._id === values.slotId);
+        if (chosenSlot && chosenSlot.maxCapacity > 0 && chosenSlot.currentCapacity >= chosenSlot.maxCapacity) {
+          setError('Selected time slot is full. Please choose another slot.');
+          setBusy(false);
+          return;
+        }
+      }
       const isManualAttendance = action.url?.startsWith('/attendance/manual-');
       const result = await api.request({ method: action.method, url: action.url, data: body, headers: { 'Idempotency-Key': action.key } });
       setAction(null); setNotice(result.data.message || 'Saved successfully.'); setRevision(v => v + 1);
@@ -574,8 +657,20 @@ export default function Operations({ section, user, query = '' }) {
     visible = visible.filter(row => (row.role || '').toLowerCase() === filters.role.toLowerCase());
   }
   let columns = section === 'reports' ? reportColumns[report] || [] : definition?.columns || [];
-  if (user.role === 'trainer' && section === 'members') columns = ['member', 'startDate', 'status'];
-  const showActions = section !== 'reports';
+  if (user.role === 'trainer') {
+    if (section === 'members') columns = ['member', 'fitnessGoal', 'dailyGymTime', 'status'];
+    if (section === 'attendance') columns = ['sessionName', 'checkInTime', 'checkOutTime', 'duration', 'attendanceStatus'];
+    if (section === 'availability') columns = ['dayOfWeek', 'startTime', 'endTime', 'breakStartTime', 'breakEndTime', 'maxClients', 'requestStatus'];
+    if (section === 'notifications') columns = ['title', 'message', 'isRead', 'createdAt'];
+  }
+  if (user.role === 'member') {
+    if (section === 'attendance') columns = ['sessionName', 'checkInTime', 'checkOutTime', 'duration', 'attendanceStatus'];
+    if (section === 'payments') columns = ['transactionId', 'amount', 'paymentMethod', 'paymentStatus', 'paymentDate'];
+    if (section === 'notifications') columns = ['title', 'message', 'isRead', 'createdAt'];
+    if (section === 'coach') columns = ['trainer', 'startDate', 'status'];
+    if (section === 'schedule') columns = ['timeSlot', 'startDate', 'endDate', 'status'];
+  }
+  const showActions = section !== 'reports' && !(user.role === 'member' && ['attendance', 'coach', 'schedule'].includes(section)) && !(user.role === 'trainer' && section === 'attendance');
   const createAllowed = staff && (isAdmin || ['memberships', 'allocations'].includes(section));
   const rowActions = row => {
     const buttons = [];
@@ -602,28 +697,42 @@ export default function Operations({ section, user, query = '' }) {
       (user.role === 'reception' && section === 'slots') ||
       (section === 'profile' && user.role === 'member');
     if (section === 'members') {
-      buttons.push(
-        <button
-          className="outline-btn btn-view-profile"
-          disabled={busy}
-          key="details"
-          onClick={() => openMemberProfile(row)}
-          title="View Member Profile"
-        >
-          <UserRound size={13} /> Profile
-        </button>
-      );
-      buttons.push(
-        <button
-          className="outline-btn btn-plan-details"
-          disabled={busy}
-          key="plan-details"
-          onClick={() => setPlanMember(row)}
-          title="View latest membership plan & validity dates"
-        >
-          <CreditCard size={13} /> Plan
-        </button>
-      );
+      if (user.role === 'trainer') {
+        buttons.push(
+          <button
+            className="outline-btn btn-view-profile"
+            disabled={busy}
+            key="details"
+            onClick={() => openMemberProfile(row)}
+            title="View Member Profile & Health Notes"
+          >
+            <UserRound size={13} /> View Profile
+          </button>
+        );
+      } else {
+        buttons.push(
+          <button
+            className="outline-btn btn-view-profile"
+            disabled={busy}
+            key="details"
+            onClick={() => openMemberProfile(row)}
+            title="View Member Profile"
+          >
+            <UserRound size={13} /> Profile
+          </button>
+        );
+        buttons.push(
+          <button
+            className="outline-btn btn-plan-details"
+            disabled={busy}
+            key="plan-details"
+            onClick={() => setPlanMember(row)}
+            title="View latest membership plan & validity dates"
+          >
+            <CreditCard size={13} /> Plan
+          </button>
+        );
+      }
     }
     if (section === 'members' && staff) {
       buttons.push(
@@ -657,8 +766,13 @@ export default function Operations({ section, user, query = '' }) {
         if (row.status === 'pending') add('Change requested slot / trainer', 'patch', `/memberships/${row._id}/selection`, [slot, field('trainerId', 'Trainer (leave blank for none)', 'trainers', true)]);
       }
       if (user.role === 'member' && row.pendingAmount > 0) buttons.push(<button className="lime-btn" disabled={busy} key="razorpay" onClick={() => payOnline(row)}>Pay with Razorpay</button>);
-      if (staff && row.status !== 'pending') {
+      if (user.role === 'member' && row.status === 'pending') {
+        add('Change slot', 'patch', `/memberships/${row._id}/selection`, [slot, field('trainerId', 'Trainer (leave blank for none)', 'trainers', true)]);
+      }
+      if ((staff || user.role === 'member') && row.status !== 'pending') {
         add('Renew', 'post', `/memberships/${row._id}/renew`, [plan, slot]);
+      }
+      if (staff && row.status !== 'pending') {
         if (row.status === 'active') add('Change plan', 'post', `/memberships/${row._id}/change`, [plan, field('action', 'Change', 'select', ['upgrade'])]);
         if (isAdmin) {
           if (['active', 'frozen'].includes(row.status)) add(row.status === 'frozen' ? 'Unfreeze' : 'Freeze', 'post', `/memberships/${row._id}/${row.status === 'frozen' ? 'unfreeze' : 'freeze'}`, []);
@@ -674,7 +788,12 @@ export default function Operations({ section, user, query = '' }) {
             className="checkout-row-btn"
             disabled={busy}
             key="checkout"
-            onClick={() => begin('Check out', 'post', '/attendance/manual-checkout', [field('notes', 'Exit reason')], row, { memberId: row.member?._id || row.member })}
+            onClick={() => begin('Check out', 'post', '/attendance/manual-checkout', [field('notes', 'Exit reason')], row, {
+              attendanceId: row._id,
+              memberId: row.member?._id || row.member,
+              trainerId: row.trainer?._id || row.trainer,
+              userId: row.user?._id || row.user,
+            })}
           >
             <LogOut size={13} /> Check out
           </button>
@@ -716,7 +835,72 @@ export default function Operations({ section, user, query = '' }) {
     }
     if (section === 'notifications' && !row.isRead) add('Mark read', 'put', `/notifications/${row._id}/read`, []);
     if (section === 'settings' && isAdmin && row.isEditable) add('Edit setting', 'put', `/settings/${row.key}`, [field('value', row.description || label(row.key), typeof row.value === 'boolean' ? 'checkbox' : typeof row.value === 'number' ? 'number' : 'text')]);
-    if (section === 'users' && isAdmin) add(row.isActive ? 'Deactivate' : 'Reactivate', 'patch', `/users/${row._id}/status`, [field('isActive', 'Account active', 'checkbox')], { isActive: !row.isActive });
+    if (section === 'users' && isAdmin) {
+      add(row.isActive ? 'Deactivate' : 'Reactivate', 'patch', `/users/${row._id}/status`, [field('isActive', 'Account active', 'checkbox')], { isActive: !row.isActive });
+      if (row.role === 'reception') {
+        buttons.push(
+          <button
+            className="outline-btn btn-fingerprint"
+            disabled={busy}
+            key="fingerprint"
+            onClick={() => setFingerprintMember({ ...row, role: 'reception' })}
+            title={row.biometricEnrolled ? 'Edit or replace staff fingerprint' : 'Add staff fingerprint'}
+          >
+            <Fingerprint size={13} /> Fingerprint
+          </button>
+        );
+      }
+    }
+    if (section === 'trainers' && isAdmin) {
+      buttons.push(
+        <button
+          className="outline-btn btn-fingerprint"
+          disabled={busy}
+          key="fingerprint"
+          onClick={() => setFingerprintMember(row)}
+          title={row.biometricEnrolled ? 'Edit or replace trainer fingerprint' : 'Add trainer fingerprint'}
+        >
+          <Fingerprint size={13} /> Fingerprint
+        </button>
+      );
+    }
+    if (section === 'availability' && user.role === 'trainer') {
+      buttons.push(
+        <button
+          className="outline-btn btn-request-change"
+          disabled={busy}
+          key="request-change"
+          onClick={() => begin(
+            `Request Schedule Change (${(row.dayOfWeek || '').toUpperCase()})`,
+            'post',
+            '/trainer-availabilities/request-change',
+            [
+              field('startTime', 'Start time', 'time'),
+              field('endTime', 'End time', 'time'),
+              { ...field('breakStartTime', 'Break start (optional)', 'time'), optional: true },
+              { ...field('breakEndTime', 'Break end (optional)', 'time'), optional: true },
+              field('maxClients', 'Maximum clients', 'number'),
+              field('reason', 'Reason for change (reviewed by Admin)', 'text'),
+            ],
+            row,
+            {
+              availabilityId: row._id,
+              dayOfWeek: row.dayOfWeek,
+              startTime: row.startTime,
+              endTime: row.endTime,
+              breakStartTime: row.breakStartTime || '',
+              breakEndTime: row.breakEndTime || '',
+              maxClients: row.maxClients || 10,
+              isActive: row.isActive !== false,
+              reason: row.pendingRequest?.reason || '',
+            }
+          )}
+          title="Submit schedule change request to Admin"
+        >
+          <Edit3 size={13} /> Request Change
+        </button>
+      );
+    }
     if (section === 'slots' && staff) add('Allocate member', 'post', '/time-slots/allocate', [member, field('membershipId', 'Membership', 'memberships'), slot], { slotId: row._id });
     return buttons;
   };
@@ -729,17 +913,46 @@ export default function Operations({ section, user, query = '' }) {
   const renderCell = (row, key) => {
     const value = row[key];
     if (key === 'member') {
-      const name = value?.fullName || (typeof value === 'string' ? value : 'Unknown member');
-      const initials = name.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase() || 'M';
-      const memberId = value?.memberId || '';
-      const phone = value?.mobileNumber || '';
-      const memberDbId = value?._id || (typeof value === 'object' ? value?._id : null);
+      // Multi-role attendance: detect personType for TRAINER / STAFF / MEMBER badge
+      const pType = row.personType || (row.trainer ? 'trainer' : row.user ? 'reception' : 'member');
+      const isAttendanceSection = section === 'attendance';
+
+      // For attendance rows, prefer the populated trainer/user over member
+      let displayName, displayInitials, displayId, displayPhone, displayDbId, displayPicture;
+      if (isAttendanceSection && pType === 'trainer' && row.trainer) {
+        const t = row.trainer;
+        displayName = t.fullName || row.personName || 'Trainer';
+        displayInitials = displayName.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase() || 'TR';
+        displayId = t.trainerId || row.personCode || '';
+        displayPhone = '';
+        displayDbId = t._id;
+        displayPicture = t.profilePicture || null;
+      } else if (isAttendanceSection && pType === 'reception' && row.user) {
+        const u = row.user;
+        displayName = u.name || u.email?.split('@')[0] || row.personName || 'Staff';
+        displayInitials = displayName.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase() || 'ST';
+        displayId = row.personCode || 'STAFF';
+        displayPhone = u.email || '';
+        displayDbId = null;
+        displayPicture = null;
+      } else {
+        displayName = value?.fullName || (typeof value === 'string' ? value : row.personName || 'Unknown member');
+        displayInitials = displayName.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase() || 'M';
+        displayId = value?.memberId || row.personCode || '';
+        displayPhone = value?.mobileNumber || '';
+        displayDbId = value?._id || (typeof value === 'object' ? value?._id : null);
+        displayPicture = value?.profilePicture || null;
+      }
+
+      const roleBadgeClass = pType === 'trainer' ? 'role-badge-trainer' : pType === 'reception' ? 'role-badge-staff' : 'role-badge-member';
+      const roleBadgeText = pType === 'trainer' ? 'TRAINER' : pType === 'reception' ? 'STAFF' : 'MEMBER';
+
       return (
         <div className="attendance-member-cell">
-          {value?.profilePicture ? (
+          {displayPicture ? (
             <img
-              src={value.profilePicture}
-              alt={name}
+              src={displayPicture}
+              alt={displayName}
               className="attendance-avatar-img-sm"
               onError={(e) => {
                 e.currentTarget.style.display = 'none';
@@ -748,23 +961,28 @@ export default function Operations({ section, user, query = '' }) {
             />
           ) : null}
           <span
-            className="attendance-avatar"
-            style={{ display: value?.profilePicture ? 'none' : 'grid' }}
+            className={`attendance-avatar ${pType === 'trainer' ? 'trainer-avatar' : pType === 'reception' ? 'staff-avatar' : ''}`}
+            style={{ display: displayPicture ? 'none' : 'grid' }}
           >
-            {initials}
+            {displayInitials}
           </span>
           <div className="attendance-member-meta">
-            <button
-              type="button"
-              className="attendance-member-name-btn"
-              onClick={() => memberDbId && openMemberProfile({ member: { _id: memberDbId } })}
-              title="View Member Profile"
-            >
-              {name}
-            </button>
+            {displayDbId && pType === 'member' ? (
+              <button
+                type="button"
+                className="attendance-member-name-btn"
+                onClick={() => openMemberProfile({ member: { _id: displayDbId } })}
+                title="View Member Profile"
+              >
+                {displayName}
+              </button>
+            ) : (
+              <b className="attendance-person-name">{displayName}</b>
+            )}
             <div className="attendance-member-subtags">
-              {memberId && <span className="member-id-capsule">{memberId}</span>}
-              {phone && <span className="member-phone-text">{phone}</span>}
+              {displayId && <span className="member-id-capsule">{displayId}</span>}
+              {isAttendanceSection && <span className={`attendee-role-badge ${roleBadgeClass}`}>{roleBadgeText}</span>}
+              {displayPhone && !isAttendanceSection && <span className="member-phone-text">{displayPhone}</span>}
             </div>
           </div>
         </div>
@@ -859,6 +1077,24 @@ export default function Operations({ section, user, query = '' }) {
       if (!value) return <span className="text-muted">—</span>;
       return <span className="member-phone-text">{value}</span>;
     }
+    if (key === 'fitnessGoal') {
+      const rawGoal = String(value || row.member?.fitnessGoal || 'general_fitness');
+      const goal = rawGoal.replace(/_/g, ' ');
+      const titleGoal = goal.charAt(0).toUpperCase() + goal.slice(1);
+      return (
+        <span className={`luxury-goal-pill ${rawGoal.toLowerCase().replace(/_/g, '-')}`}>
+          <Target size={12} /> {titleGoal}
+        </span>
+      );
+    }
+    if (key === 'dailyGymTime') {
+      const timeStr = value || row.dailyGymTime || (row.timeSlot ? `${row.timeSlot.startTime} – ${row.timeSlot.endTime} (${row.timeSlot.name})` : 'Flexible Timing');
+      return (
+        <span className="luxury-daily-time-pill">
+          <Clock3 size={12} /> {timeStr}
+        </span>
+      );
+    }
     if (key === 'membershipPlan') {
       const planName = value?.name || (typeof value === 'string' ? value : 'Standard Plan');
       const duration = value?.duration ? `${value.duration}M` : '';
@@ -907,6 +1143,28 @@ export default function Operations({ section, user, query = '' }) {
       }
       return <span className="text-muted">—</span>;
     }
+    if (section === 'availability' && key === 'dayOfWeek') {
+      const d = String(value || '').toUpperCase();
+      return <span className="schedule-day-badge">{d}</span>;
+    }
+    if (key === 'requestStatus') {
+      if (row.pendingRequest || value === 'pending') {
+        const p = row.pendingRequest;
+        return (
+          <span
+            className="schedule-pending-status-pill"
+            title={p ? `Requested ${displayClock(p.startTime)} – ${displayClock(p.endTime)}${p.reason ? `: ${p.reason}` : ''}` : 'Pending Admin Approval'}
+          >
+            <Clock3 size={12} /> Pending Admin
+          </span>
+        );
+      }
+      return (
+        <span className="schedule-active-status-pill">
+          <CheckCircle2 size={12} /> Live / Active
+        </span>
+      );
+    }
     if (key === 'receiptNumber') {
       if (!value) return <span className="text-muted">—</span>;
       return <span className="receipt-capsule">{value}</span>;
@@ -937,7 +1195,17 @@ export default function Operations({ section, user, query = '' }) {
       const actClass = act.toLowerCase();
       return <span className={`luxury-audit-badge ${actClass}`}>{act}</span>;
     }
-    if (['startDate', 'endDate', 'assignedAt', 'createdAt', 'timestamp', 'updatedAt'].includes(key)) {
+    if (['startDate', 'endDate'].includes(key)) {
+      if (!value) return <span className="text-muted">—</span>;
+      const d = new Date(value);
+      if (isNaN(d.getTime())) return String(value);
+      return (
+        <span className="clean-date-cell">
+          {d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+        </span>
+      );
+    }
+    if (['assignedAt', 'createdAt', 'timestamp', 'updatedAt'].includes(key)) {
       if (!value) return <span className="text-muted">—</span>;
       const d = new Date(value);
       if (isNaN(d.getTime())) return String(value);
@@ -1064,6 +1332,28 @@ export default function Operations({ section, user, query = '' }) {
           <span className="session-text">{session.toUpperCase()}</span>
         </span>
       );
+    }
+    if (section === 'settings') {
+      if (key === 'key') {
+        return <span className="settings-key-badge">{String(value)}</span>;
+      }
+      if (key === 'value') {
+        if (typeof value === 'boolean') {
+          return (
+            <span className={`luxury-status-pill ${value ? 'active' : 'inactive'}`}>
+              <span className="status-dot" />
+              <span>{value ? 'Enabled' : 'Disabled'}</span>
+            </span>
+          );
+        }
+        return <strong className="settings-value-text">{String(value)}</strong>;
+      }
+      if (key === 'category') {
+        return <span className="luxury-spec-pill">{String(value).toUpperCase()}</span>;
+      }
+      if (key === 'description') {
+        return <span className="settings-desc-text">{String(value || '—')}</span>;
+      }
     }
     if (['status', 'paymentStatus', 'registrationStatus', 'attendanceStatus', 'membershipStatus'].includes(key)) {
       const raw = String(value || 'unknown').toLowerCase();
@@ -1550,6 +1840,37 @@ export default function Operations({ section, user, query = '' }) {
               <Plus size={16}/> Create {label(section)}
             </button>
           )}
+          {section === 'availability' && user.role === 'trainer' && (
+            <button
+              className="lime-btn"
+              disabled={busy}
+              onClick={() => begin(
+                'Request Working Day Schedule',
+                'post',
+                '/trainer-availabilities/request-change',
+                [
+                  field('dayOfWeek', 'Day of week', 'select', days),
+                  field('startTime', 'Start time', 'time'),
+                  field('endTime', 'End time', 'time'),
+                  { ...field('breakStartTime', 'Break start (optional)', 'time'), optional: true },
+                  { ...field('breakEndTime', 'Break end (optional)', 'time'), optional: true },
+                  field('maxClients', 'Maximum clients', 'number'),
+                  field('reason', 'Reason for Admin review', 'text'),
+                ],
+                {},
+                {
+                  trainerId: user.profile?._id || user._id,
+                  dayOfWeek: 'monday',
+                  startTime: '06:00',
+                  endTime: '18:00',
+                  maxClients: 10,
+                  isActive: true,
+                }
+              )}
+            >
+              <Plus size={15}/> Request Working Day
+            </button>
+          )}
           {section === 'notifications' && isAdmin && (
             <>
               <button className="outline-btn" disabled={busy} onClick={async () => {
@@ -1579,8 +1900,23 @@ export default function Operations({ section, user, query = '' }) {
             </>
           )}
           {section === 'settings' && isAdmin && (
-            <button className="lime-btn" onClick={() => begin('Initialize missing default settings', 'post', '/settings/initialize')}>
-              Initialize defaults
+            <button
+              className="lime-btn"
+              disabled={busy}
+              onClick={async () => {
+                setBusy(true); setError(''); setNotice('');
+                try {
+                  await api.post('/settings/initialize');
+                  setNotice('Default settings initialized successfully!');
+                  setRevision(v => v + 1);
+                } catch (err) {
+                  setError(err.response?.data?.error || 'Failed to initialize settings');
+                } finally {
+                  setBusy(false);
+                }
+              }}
+            >
+              <RefreshCw size={14} className={busy ? 'animate-spin' : ''} /> Initialize defaults
             </button>
           )}
         </div>
@@ -1589,6 +1925,64 @@ export default function Operations({ section, user, query = '' }) {
     {section === 'slots' && <p>Each time slot applies every day the gym is open. Members select it once during registration.</p>}
     {error && <div className="error-message management-message" role="alert">{error}</div>}
     {notice && <p role="status">{notice}</p>}
+    {section === 'availability' && user.role === 'trainer' && rows.some(r => r.pendingRequest) && (
+      <div className="trainer-pending-schedule-banner">
+        <Clock3 size={18} className="text-lime" />
+        <div className="banner-text">
+          <strong>Schedule Change Request Pending Admin Review</strong>
+          <p>You have submitted availability change requests awaiting administrative approval. Your current live hours remain active on the gym floor until approved.</p>
+        </div>
+      </div>
+    )}
+    {section === 'availability' && isAdmin && scheduleRequests.length > 0 && (
+      <div className="admin-schedule-requests-card">
+        <div className="requests-card-header">
+          <Clock3 size={18} className="text-lime" />
+          <div>
+            <h4>Pending Trainer Availability Requests ({scheduleRequests.length})</h4>
+            <p>Trainers requested schedule updates that require administrative approval before taking effect.</p>
+          </div>
+        </div>
+        <div className="requests-list">
+          {scheduleRequests.map((req) => (
+            <div key={req._id} className="schedule-request-item">
+              <div className="request-trainer-meta">
+                <b>{req.trainer?.fullName}</b>
+                <span className="member-id-capsule">{req.trainer?.trainerId}</span>
+                <span className="request-day-tag">{req.dayOfWeek?.toUpperCase()}</span>
+              </div>
+              <div className="request-timing-meta">
+                <span className="request-time-pill">
+                  <Clock3 size={12} /> {displayClock(req.startTime)} – {displayClock(req.endTime)}
+                </span>
+                {req.breakStartTime && (
+                  <small className="request-break-text">Break: {displayClock(req.breakStartTime)} – {displayClock(req.breakEndTime)}</small>
+                )}
+                {req.reason && <p className="request-reason-text">"{req.reason}"</p>}
+              </div>
+              <div className="request-action-btns">
+                <button
+                  type="button"
+                  className="lime-btn btn-sm"
+                  disabled={busy}
+                  onClick={() => handleApproveScheduleRequest(req._id)}
+                >
+                  <Check size={13} /> Approve & Apply
+                </button>
+                <button
+                  type="button"
+                  className="outline-btn btn-sm btn-destructive"
+                  disabled={busy}
+                  onClick={() => handleRejectScheduleRequest(req._id)}
+                >
+                  <X size={13} /> Decline
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    )}
     {paymentMetrics && <section className="payment-summary-grid">
       <article><span>Total collected</span><strong>{valueText(paymentMetrics.collected, 'amount')}</strong><small>{visible.length} transactions shown</small></article>
       <article><span>Razorpay</span><strong>{valueText(paymentMetrics.online, 'amount')}</strong><small>Completed online payments</small></article>
@@ -1598,34 +1992,54 @@ export default function Operations({ section, user, query = '' }) {
     {summary && section === 'reports' && <section className="report-summary">{summaryItems(summary).map(item => <article key={item.key}><span>{label(item.label)}</span><strong>{valueText(item.value, item.key)}</strong></article>)}</section>}
     {action && <div className="operation-modal" role="dialog" aria-modal="true" aria-label={action.title}>
       <form className={`registration-form operation-form ${trainerForm ? 'trainer-operation-form' : ''}`} onSubmit={submit}>
-        <div className="operation-form-head"><div><span>{trainerForm ? 'TRAINER PROFILE' : 'MANAGEMENT ACTION'}</span><h2>{action.title}</h2></div>{trainerForm && <p>Complete the trainer’s profile, login access and preferred schedule.</p>}</div>
-        {error && <p role="alert" className="error-message">{error}</p>}
-        {!action.fields.length && <p>Confirm this action. It will be recorded against your account.</p>}
-        <div className="form-grid">{action.fields.map(f => <Fragment key={f.name}>
-          {trainerForm && trainerSectionTitles[f.name] && <div className="trainer-form-section"><h3>{trainerSectionTitles[f.name][0]}</h3><p>{trainerSectionTitles[f.name][1]}</p></div>}
-          <label className={`operation-field field-${f.name} ${['days', 'checks'].includes(f.type) ? 'full-width' : ''}`}>{f.label}
-          {f.type === 'sessions' ? <div className="session-inputs">
-            {(values.sessions || []).map((session, index) => <div className="session-row" key={index}>
-              {['name', 'startTime', 'endTime'].map(key => <input key={key} aria-label={`Session ${index + 1} ${label(key)}`} required type={key === 'name' ? 'text' : 'time'} value={session[key] || ''} onChange={e => setValues({ ...values, sessions: values.sessions.map((current, i) => i === index ? { ...current, [key]: e.target.value } : current) })}/>)}
-              <button type="button" className="outline-btn" onClick={() => setValues({ ...values, sessions: values.sessions.filter((_, i) => i !== index) })}>Remove session</button>
-            </div>)}
-            <button type="button" className="outline-btn" onClick={() => setValues({ ...values, sessions: [...(values.sessions || []), { name: '', startTime: '', endTime: '' }] })}>Add session</button>
-          </div> : f.type === 'select' || choices[f.type] ? <select required={f.options !== true} value={values[f.name] || ''} onChange={e => changeField(f, e.target.value)}>
-            <option value="">Select {f.label}</option>{(choices[f.type] || f.options || []).map(option => typeof option === 'string' ? <option key={option} value={option}>{label(option)}</option> :
-              <option key={option._id} value={option._id}>{choiceText(option, f.type)}</option>)}
-          </select> : f.type === 'days' || f.type === 'checks' ? <div className="day-options">{(f.type === 'days' ? days : f.options).map(d => <label key={d}><input type="checkbox" checked={(values[f.name] || []).includes(d)} onChange={e => setValues({ ...values, [f.name]: e.target.checked ? [...(values[f.name] || []), d] : values[f.name].filter(x => x !== d) })}/>{label(d)}</label>)}</div> :
-          <input type={['optional', 'list'].includes(f.type) || ['members','trainers','slots','plans','memberships'].includes(f.type) ? 'text' : f.type}
-            required={!f.optional && !['optional','checkbox'].includes(f.type)} min={f.type === 'number' ? 0 : undefined} step={f.type === 'number' ? 'any' : undefined}
-            minLength={f.type === 'password' ? section === 'users' ? 12 : 8 : undefined} maxLength={f.type === 'password' ? 72 : undefined}
-            checked={f.type === 'checkbox' ? Boolean(values[f.name]) : undefined} value={f.type === 'checkbox' ? undefined : values[f.name] ?? ''}
-            onChange={e => changeField(f, f.type === 'checkbox' ? e.target.checked : e.target.value)}/>}</label></Fragment>)}</div>
-        {action.url.startsWith('/attendance/manual-') && values.memberId && <div className={`member-slot-preview ${memberSlot === null ? 'missing' : ''}`}>
-          <span>Assigned gym time</span>
-          {slotLoading ? <strong>Checking member slot…</strong> : memberSlot?.timeSlot
-            ? <><strong>Daily · {displayClock(memberSlot.timeSlot.startTime)} – {displayClock(memberSlot.timeSlot.endTime)}</strong><small>{memberSlot.timeSlot.name}</small></>
-            : <><strong>No active time slot assigned</strong><small>Assign a slot before checking this member in.</small></>}
-        </div>}
-        <div className="form-actions"><button type="button" className="outline-btn" disabled={busy} onClick={() => setAction(null)}>Cancel</button><button className="lime-btn" disabled={busy}>{busy ? 'Saving?' : 'Confirm'}</button></div>
+        <div className="operation-form-head">
+          <div>
+            <span>{trainerForm ? 'TRAINER PROFILE' : action.title?.includes('Schedule') ? 'SCHEDULE REQUEST' : 'MANAGEMENT ACTION'}</span>
+            <h2>{action.title}</h2>
+          </div>
+          <button
+            type="button"
+            className="operation-modal-close"
+            onClick={() => { setAction(null); setError(''); }}
+            title="Cancel and Close"
+            aria-label="Close dialog"
+          >
+            <X size={18} />
+          </button>
+          {trainerForm && <p>Complete the trainer’s profile, login access and preferred schedule.</p>}
+        </div>
+        <div className="operation-form-scroll-body">
+          {error && <p role="alert" className="error-message">{error}</p>}
+          {!action.fields.length && <p>Confirm this action. It will be recorded against your account.</p>}
+          <div className="form-grid">{action.fields.map(f => <Fragment key={f.name}>
+            {trainerForm && trainerSectionTitles[f.name] && <div className="trainer-form-section"><h3>{trainerSectionTitles[f.name][0]}</h3><p>{trainerSectionTitles[f.name][1]}</p></div>}
+            <label className={`operation-field field-${f.name} ${['days', 'checks'].includes(f.type) ? 'full-width' : ''}`}>{f.label}
+            {f.type === 'sessions' ? <div className="session-inputs">
+              {(values.sessions || []).map((session, index) => <div className="session-row" key={index}>
+                {['name', 'startTime', 'endTime'].map(key => <input key={key} aria-label={`Session ${index + 1} ${label(key)}`} required type={key === 'name' ? 'text' : 'time'} value={session[key] || ''} onChange={e => setValues({ ...values, sessions: values.sessions.map((current, i) => i === index ? { ...current, [key]: e.target.value } : current) })}/>)}
+                <button type="button" className="outline-btn" onClick={() => setValues({ ...values, sessions: values.sessions.filter((_, i) => i !== index) })}>Remove session</button>
+              </div>)}
+              <button type="button" className="outline-btn" onClick={() => setValues({ ...values, sessions: [...(values.sessions || []), { name: '', startTime: '', endTime: '' }] })}>Add session</button>
+            </div> : f.type === 'select' || choices[f.type] ? <select required={f.options !== true} value={values[f.name] || ''} onChange={e => changeField(f, e.target.value)}>
+              <option value="">Select {f.label}</option>{(choices[f.type] || f.options || []).map(option => typeof option === 'string' ? <option key={option} value={option}>{label(option)}</option> :
+                <option key={option._id} value={option._id}>{choiceText(option, f.type)}</option>)}
+            </select> : f.type === 'days' || f.type === 'checks' ? <div className="day-options">{(f.type === 'days' ? days : f.options).map(d => <label key={d}><input type="checkbox" checked={(values[f.name] || []).includes(d)} onChange={e => setValues({ ...values, [f.name]: e.target.checked ? [...(values[f.name] || []), d] : values[f.name].filter(x => x !== d) })}/>{label(d)}</label>)}</div> :
+            <input type={['optional', 'list'].includes(f.type) || ['members','trainers','slots','plans','memberships'].includes(f.type) ? 'text' : f.type}
+              required={!f.optional && !['optional','checkbox'].includes(f.type)} min={f.type === 'number' ? 0 : undefined} step={f.type === 'number' ? 'any' : undefined}
+              minLength={f.type === 'password' ? section === 'users' ? 12 : 8 : undefined} maxLength={f.type === 'password' ? 72 : undefined}
+              checked={f.type === 'checkbox' ? Boolean(values[f.name]) : undefined} value={f.type === 'checkbox' ? undefined : values[f.name] ?? ''}
+              onChange={e => changeField(f, f.type === 'checkbox' ? e.target.checked : e.target.value)}/>}</label></Fragment>)}</div>
+          {action.url.startsWith('/attendance/manual-') && values.memberId && <div className={`member-slot-preview ${memberSlot === null ? 'missing' : ''}`}>
+            <span>Assigned gym time</span>
+            {slotLoading ? <strong>Checking member slot…</strong> : memberSlot?.timeSlot
+              ? <><strong>Daily · {displayClock(memberSlot.timeSlot.startTime)} – {displayClock(memberSlot.timeSlot.endTime)}</strong><small>{memberSlot.timeSlot.name}</small></>
+              : <><strong>No active time slot assigned</strong><small>Assign a slot before checking this member in.</small></>}
+          </div>}
+        </div>
+        <div className="form-actions operation-form-actions">
+          <button type="button" className="outline-btn modal-cancel-btn" disabled={busy} onClick={() => { setAction(null); setError(''); }}>Cancel</button>
+          <button className="lime-btn modal-confirm-btn" disabled={busy}>{busy ? 'Saving…' : 'Confirm'}</button>
+        </div>
       </form>
     </div>}
     {details && (
@@ -1712,13 +2126,440 @@ export default function Operations({ section, user, query = '' }) {
     )}
     {loading ? (
       <TableSkeleton rows={8} cols={columns.length + (showActions ? 1 : 0)} showHeader={false} />
+    ) : user.role === 'member' && section === 'profile' ? (
+      <MemberProfileShowcase
+        member={visible[0] || user?.profile}
+        onEdit={() => begin('Edit profile', 'put', definition.url, definition.edit, visible[0] || user?.profile)}
+        onBiometrics={() => nav('/member/biometrics')}
+      />
+    ) : user.role === 'member' && section === 'coach' ? (
+      <MemberCoachShowcase
+        allocation={visible[0]}
+        onExplorePlans={() => nav('/member/membership')}
+      />
+    ) : user.role === 'member' && section === 'schedule' ? (
+      <MemberSlotShowcase
+        allocation={visible[0]}
+        onManageSlot={() => nav('/member/membership')}
+      />
+    ) : user.role === 'member' && section === 'notifications' ? (
+      <MemberNotificationsShowcase
+        notifications={visible}
+        onMarkRead={async (row) => {
+          try {
+            await api.patch(`/notifications/${row._id}/read`);
+            setRevision(v => v + 1);
+          } catch {}
+        }}
+      />
     ) : (
-      <section className={`table-card ${section === 'reports' ? 'report-table-card' : ''} ${section === 'payments' ? 'payments-table-card' : ''} ${section === 'attendance' ? 'attendance-table-card' : ''}`}><div className="table-scroll"><table>
-      <thead><tr>{columns.map(key => <th key={key}>{label(key, section)}</th>)}{showActions && <th>Actions</th>}</tr></thead>
-      <tbody>{visible.length ? visible.map((row, i) => <tr key={row._id || row.slotId || i}>{columns.map(key => <td key={key}>{renderCell(row, key)}</td>)}{showActions && <td><div className="row-actions">{rowActions(row)}</div></td>}</tr>) : <tr><td className="empty-table" colSpan={columns.length + (showActions ? 1 : 0)}>No records found for the selected filters.</td></tr>}</tbody>
-    </table></div></section>)}
+      <section className={`table-card ${section === 'reports' ? 'report-table-card' : ''} ${section === 'payments' ? 'payments-table-card' : ''} ${section === 'attendance' ? 'attendance-table-card' : ''} ${['membership', 'memberships'].includes(section) ? 'membership-table-card' : ''} ${user.role}-table-card`}>
+        <div className="table-scroll">
+          <table className={`${section}-table ${user.role}-table`}>
+            <thead>
+              <tr>
+                {columns.map(key => <th key={key} className={`col-${key}`}>{label(key, section)}</th>)}
+                {showActions && <th className="col-actions">Actions</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {visible.length ? visible.map((row, i) => (
+                <tr key={row._id || row.slotId || i}>
+                  {columns.map(key => <td key={key} className={`col-${key}`}>{renderCell(row, key)}</td>)}
+                  {showActions && (
+                    <td className="col-actions">
+                      <div className="row-actions">
+                        <ActionMenu actions={rowActions(row)} />
+                      </div>
+                    </td>
+                  )}
+                </tr>
+              )) : (
+                <tr>
+                  <td className="empty-table" colSpan={columns.length + (showActions ? 1 : 0)}>No records found for the selected filters.</td>
+                </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+      </section>)}
     {pagination && <div className="form-actions"><button className="outline-btn" disabled={page <= 1} onClick={() => setPage(v => v - 1)}>Previous</button><span>Page {page} of {pagination.pages || 1} ? {pagination.total} records</span><button className="outline-btn" disabled={page >= pagination.pages} onClick={() => setPage(v => v + 1)}>Next</button></div>}
   </div>;
+}
+
+function ActionMenu({ actions = [] }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const onOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) setOpen(false);
+    };
+    const onEsc = (e) => {
+      if (e.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('mousedown', onOutside);
+    document.addEventListener('keydown', onEsc);
+    return () => {
+      document.removeEventListener('mousedown', onOutside);
+      document.removeEventListener('keydown', onEsc);
+    };
+  }, [open]);
+
+  const items = actions.filter(Boolean);
+  if (!items.length) return null;
+  if (items.length === 1) return items[0];
+
+  return (
+    <div className="action-dropdown" ref={menuRef}>
+      <button
+        type="button"
+        className={`action-dropdown-trigger${open ? ' open' : ''}`}
+        onClick={() => setOpen(v => !v)}
+        aria-expanded={open}
+      >
+        <span>Actions</span>
+        <ChevronDown size={14} />
+      </button>
+      {open && (
+        <div className="action-dropdown-menu" onClick={() => setOpen(false)}>
+          {items}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function MemberProfileShowcase({ member, onEdit, onBiometrics }) {
+  if (!member) return null;
+  const height = Number(member.height) || 0;
+  const weight = Number(member.weight) || 0;
+  let bmi = null;
+  let bmiCategory = '—';
+  if (height > 0 && weight > 0) {
+    const val = weight / ((height / 100) * (height / 100));
+    bmi = val.toFixed(1);
+    if (val < 18.5) bmiCategory = 'Underweight';
+    else if (val <= 24.9) bmiCategory = 'Healthy Weight';
+    else if (val <= 29.9) bmiCategory = 'Overweight';
+    else bmiCategory = 'Obese';
+  }
+
+  const goal = (member.fitnessGoal || 'general_fitness').replaceAll('_', ' ');
+
+  return (
+    <div className="member-profile-showcase">
+      <div className="member-showcase-card profile-hero-card">
+        <div className="profile-hero-left">
+          <div className="profile-avatar-aura">
+            {member.profilePicture ? (
+              <img src={member.profilePicture} alt={member.fullName || 'Member'} className="profile-hero-img" />
+            ) : (
+              <div className="profile-hero-initials">{member.avatarInitials || member.fullName?.[0] || 'M'}</div>
+            )}
+          </div>
+          <div className="profile-hero-meta">
+            <div className="profile-name-row">
+              <h2>{member.fullName || 'Member Profile'}</h2>
+              <span className="member-id-pill"><Award size={13} /> {member.memberId || 'GYM MEMBER'}</span>
+            </div>
+            <p className="profile-subtitle">Vino Fitness Studio · Active Athlete Pass</p>
+            <div className="profile-badge-row">
+              <span className={`luxury-status-pill ${member.membershipStatus || 'active'}`}>
+                <span className="status-dot" />
+                <span>{member.membershipStatus || 'active'}</span>
+              </span>
+              <span className="profile-tier-badge">
+                <Sparkles size={12} /> {member.latestMembership?.membershipPlan?.name || 'Studio Member'}
+              </span>
+            </div>
+          </div>
+        </div>
+        <div className="profile-hero-actions">
+          <button type="button" className="lime-btn" onClick={onEdit}>
+            <Edit3 size={15} />
+            <span>Edit Profile</span>
+          </button>
+          <button type="button" className="outline-btn" onClick={onBiometrics}>
+            <Fingerprint size={15} />
+            <span>Biometric ID</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="profile-metrics-grid">
+        <div className="profile-metric-tile">
+          <div className="metric-head">
+            <HeartPulse size={16} className="text-lime" />
+            <span>BODY METRICS</span>
+          </div>
+          <div className="metric-body-duo">
+            <div>
+              <strong>{height || '—'}</strong>
+              <small>Height (cm)</small>
+            </div>
+            <div className="metric-sep" />
+            <div>
+              <strong>{weight || '—'}</strong>
+              <small>Weight (kg)</small>
+            </div>
+          </div>
+        </div>
+
+        <div className="profile-metric-tile">
+          <div className="metric-head">
+            <Flame size={16} className="text-lime" />
+            <span>BODY MASS INDEX</span>
+          </div>
+          <div className="metric-bmi-body">
+            <strong>{bmi || '—'}</strong>
+            <span className={`bmi-tag ${bmiCategory.toLowerCase().replace(/\s+/g, '-')}`}>
+              {bmiCategory}
+            </span>
+          </div>
+        </div>
+
+        <div className="profile-metric-tile">
+          <div className="metric-head">
+            <Dumbbell size={16} className="text-lime" />
+            <span>FITNESS TARGET</span>
+          </div>
+          <div className="metric-goal-body">
+            <strong>{goal.toUpperCase()}</strong>
+            <small>Personal Training Focus</small>
+          </div>
+        </div>
+      </div>
+
+      <div className="profile-info-sections">
+        <div className="profile-info-card">
+          <div className="info-card-head">
+            <User size={16} className="text-lime" />
+            <h4>Contact Details</h4>
+          </div>
+          <div className="info-rows">
+            <div className="info-row">
+              <span className="info-label"><Phone size={13} /> Mobile</span>
+              <span className="info-val">{member.mobileNumber || 'Not provided'}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label"><MapPin size={13} /> Address</span>
+              <span className="info-val">{member.address || 'Studio Registered Address'}</span>
+            </div>
+          </div>
+        </div>
+
+        <div className="profile-info-card">
+          <div className="info-card-head">
+            <ShieldCheck size={16} className="text-lime" />
+            <h4>Emergency Contact</h4>
+          </div>
+          <div className="info-rows">
+            <div className="info-row">
+              <span className="info-label"><User size={13} /> Contact Name</span>
+              <span className="info-val">{member.emergencyContactName || 'Not recorded'}</span>
+            </div>
+            <div className="info-row">
+              <span className="info-label"><Phone size={13} /> Emergency Phone</span>
+              <span className="info-val">{member.emergencyContactPhone || 'Not recorded'}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MemberCoachShowcase({ allocation, onExplorePlans }) {
+  const trainer = allocation?.trainer;
+
+  if (!allocation || !trainer) {
+    return (
+      <div className="member-showcase-card coach-empty-card">
+        <div className="coach-empty-icon-aura">
+          <Dumbbell size={36} className="coach-glow-icon" />
+        </div>
+        <div className="coach-empty-content">
+          <span className="coach-badge-label">VINO FITNESS STUDIO · PERSONAL COACHING</span>
+          <h3>1-on-1 Certified Personal Trainer</h3>
+          <p>
+            You currently do not have a dedicated personal coach allocated. Enhance your workout progression, learn biomechanically optimal lifting techniques, and get personalized nutrition plans with our certified trainers.
+          </p>
+          <div className="coach-perks-row">
+            <div className="perk-chip"><Check size={13} /> Progressive Overload Programs</div>
+            <div className="perk-chip"><Check size={13} /> Biomechanical Form Checks</div>
+            <div className="perk-chip"><Check size={13} /> Caloric &amp; Macro Nutrition</div>
+          </div>
+          <div className="coach-cta-row">
+            <button type="button" className="lime-btn" onClick={onExplorePlans}>
+              <CreditCard size={15} />
+              <span>Explore Plans with Personal Trainer</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="member-showcase-card coach-active-card">
+      <div className="coach-active-head">
+        <div className="coach-avatar-aura">
+          <div className="coach-avatar-initials">{trainer.fullName?.[0] || 'T'}</div>
+        </div>
+        <div className="coach-active-meta">
+          <div className="coach-name-row">
+            <h3>{trainer.fullName}</h3>
+            <span className="luxury-status-pill active"><span className="status-dot" /><span>Assigned</span></span>
+          </div>
+          <p className="coach-spec"><Award size={14} className="text-lime" /> {trainer.specialization || 'Certified Strength Coach'}</p>
+          <div className="coach-stats-line">
+            <span><strong>{trainer.experience || '3+'}</strong> years experience</span>
+            <span className="meta-sep">•</span>
+            <span>Trainer ID: <strong>{trainer.trainerId || 'TR001'}</strong></span>
+          </div>
+        </div>
+      </div>
+      <div className="coach-schedule-info">
+        <div className="info-item">
+          <span>ASSIGNMENT DATE</span>
+          <strong>{allocation.startDate ? new Date(allocation.startDate).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' }) : 'Active'}</strong>
+        </div>
+        <div className="info-item">
+          <span>STATUS</span>
+          <strong className="text-lime">Active Coaching Pass</strong>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function MemberSlotShowcase({ allocation, onManageSlot }) {
+  const slot = allocation?.timeSlot;
+
+  if (!allocation || !slot) {
+    return (
+      <div className="member-showcase-card slot-empty-card">
+        <div className="slot-empty-icon-aura">
+          <Clock size={36} className="slot-glow-icon" />
+        </div>
+        <div className="slot-empty-content">
+          <span className="slot-badge-label">STUDIO SESSION RESERVATION</span>
+          <h3>No Dedicated Time Slot Assigned</h3>
+          <p>
+            You haven't reserved your daily studio workout time slot yet. Reserving a dedicated slot ensures guaranteed access to the weight training floor and turnstile punch entry.
+          </p>
+          <div className="slot-timings-grid">
+            <div className="timing-box">
+              <span className="timing-title">Morning Early</span>
+              <strong>05:00 AM – 07:00 AM</strong>
+            </div>
+            <div className="timing-box">
+              <span className="timing-title">Morning Peak</span>
+              <strong>07:00 AM – 09:30 AM</strong>
+            </div>
+            <div className="timing-box">
+              <span className="timing-title">Evening Primetime</span>
+              <strong>05:00 PM – 09:30 PM</strong>
+            </div>
+          </div>
+          <div className="slot-cta-row">
+            <button type="button" className="lime-btn" onClick={onManageSlot}>
+              <Clock size={15} />
+              <span>Select Time Slot in My Membership</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="member-showcase-card slot-active-card">
+      <div className="slot-active-badge">
+        <span className="slot-badge-dot" />
+        <span>RESERVED DAILY GYM ACCESS</span>
+      </div>
+      <div className="slot-time-hero">
+        <Clock size={28} className="text-lime" />
+        <div className="slot-time-val">
+          <h2>{displayClock(slot.startTime)} – {displayClock(slot.endTime)}</h2>
+          <p>{slot.name || 'Assigned Daily Slot'} · Daily Recurring Access</p>
+        </div>
+      </div>
+      <div className="slot-details-grid">
+        <div className="slot-detail-box">
+          <span>VALIDITY</span>
+          <strong>Daily on All Open Gym Days</strong>
+        </div>
+        <div className="slot-detail-box">
+          <span>TURNSTILE CHECK-IN</span>
+          <strong className="text-lime">Biometric Touchless Scanner</strong>
+        </div>
+        <div className="slot-detail-box">
+          <span>ENTRY WINDOW</span>
+          <strong>15 Mins Before Slot Time</strong>
+        </div>
+      </div>
+      <div className="slot-actions-bar">
+        <button type="button" className="outline-btn" onClick={onManageSlot}>
+          <SlidersHorizontal size={14} />
+          <span>Switch or Change Slot in Membership</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function MemberNotificationsShowcase({ notifications = [], onMarkRead }) {
+  if (!notifications.length) {
+    return (
+      <div className="member-showcase-card notifications-empty-card">
+        <div className="notif-empty-icon-aura">
+          <CheckCircle2 size={36} className="text-lime" />
+        </div>
+        <h3>All Caught Up</h3>
+        <p>You have no pending studio notifications. Reminders regarding renewals, payments, and studio hours will appear here.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="member-notifications-container">
+      {notifications.map((n) => (
+        <div key={n._id} className={`member-notification-card ${!n.isRead ? 'unread' : 'read'}`}>
+          <div className="notif-card-icon">
+            <Bell size={18} className={!n.isRead ? 'text-lime' : 'text-muted'} />
+          </div>
+          <div className="notif-card-content">
+            <div className="notif-card-head">
+              <h4>{n.title || 'Studio Notification'}</h4>
+              <span className="notif-card-date">
+                {n.createdAt ? new Date(n.createdAt).toLocaleDateString([], { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''}
+              </span>
+            </div>
+            <p className="notif-card-message">{n.message}</p>
+          </div>
+          <div className="notif-card-action">
+            {!n.isRead ? (
+              <button
+                type="button"
+                className="outline-btn notif-read-btn"
+                onClick={() => onMarkRead(n)}
+                title="Mark as read"
+              >
+                <Check size={14} />
+                <span>Mark read</span>
+              </button>
+            ) : (
+              <span className="notif-read-badge">Read</span>
+            )}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 }
 function localInput(value) {
   if (!value) return '';

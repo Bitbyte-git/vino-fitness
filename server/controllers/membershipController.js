@@ -102,6 +102,13 @@ exports.getMemberMembership = async (req, res, next) => {
 // @access  Private (Admin, Reception)
 exports.createMembership = async (req, res, next) => {
   try {
+    if (req.user?.role === 'member') {
+      const ownMember = await MemberProfile.findOne({ user: req.user.id }).select('_id');
+      if (!ownMember) {
+        return res.status(404).json({ success: false, error: 'Member profile not found' });
+      }
+      req.body.memberId = ownMember._id.toString();
+    }
     const { memberId, planId, slotId, trainerId, action } = req.body;
     if (action && action !== 'new_membership') {
       return res.status(400).json({ success: false, error: 'Use the renewal or change endpoint for this membership action' });
@@ -136,6 +143,9 @@ exports.createMembership = async (req, res, next) => {
         $or: [{ eligiblePlans: { $size: 0 } }, { eligiblePlans: plan._id }],
       });
       if (!slot) return res.status(400).json({ success: false, error: 'Invalid or ineligible time slot' });
+      if (slot.maxCapacity > 0 && slot.currentCapacity >= slot.maxCapacity) {
+        return res.status(409).json({ success: false, error: 'Selected time slot is full. Please choose another slot.' });
+      }
     }
     if (trainerId && (!await TrainerProfile.exists({ _id: trainerId, status: 'active' }) ||
         !await TrainerAvailability.exists({ trainer: trainerId, isActive: true }))) {
@@ -184,6 +194,12 @@ exports.renewMembership = async (req, res, next) => {
         error: 'Membership not found',
       });
     }
+    if (req.user?.role === 'member') {
+      const ownMember = await MemberProfile.findOne({ user: req.user.id }).select('_id');
+      if (!ownMember || existingMembership.member.toString() !== ownMember._id.toString()) {
+        return res.status(403).json({ success: false, error: 'Not authorized to renew this membership' });
+      }
+    }
     if (await MemberMembership.exists({ member: existingMembership.member, status: 'pending' })) {
       return res.status(409).json({ success: false, error: 'This member already has an unpaid membership request' });
     }
@@ -204,6 +220,9 @@ exports.renewMembership = async (req, res, next) => {
         $or: [{ eligiblePlans: { $size: 0 } }, { eligiblePlans: plan._id }],
       });
       if (!slot) return res.status(400).json({ success: false, error: 'Invalid or ineligible time slot' });
+      if (slot.maxCapacity > 0 && slot.currentCapacity >= slot.maxCapacity) {
+        return res.status(409).json({ success: false, error: 'Selected time slot is full. Please choose another slot.' });
+      }
     }
     if (req.body.trainerId &&
         (!await TrainerProfile.exists({ _id: req.body.trainerId, status: 'active' }) ||
@@ -253,6 +272,12 @@ exports.changeMembership = async (req, res, next) => {
         success: false,
         error: 'Membership not found',
       });
+    }
+    if (req.user?.role === 'member') {
+      const ownMember = await MemberProfile.findOne({ user: req.user.id }).select('_id');
+      if (!ownMember || existingMembership.member.toString() !== ownMember._id.toString()) {
+        return res.status(403).json({ success: false, error: 'Not authorized to renew this membership' });
+      }
     }
     if (await MemberMembership.exists({ member: existingMembership.member, status: 'pending' })) {
       return res.status(409).json({ success: false, error: 'This member already has an unpaid membership request' });
@@ -428,8 +453,19 @@ exports.unfreezeMembership = (req, res, next) => setFrozen(req, res, next, false
 
 exports.updatePendingSelection = async (req, res, next) => {
   try {
+    if (req.user?.role === 'member') {
+      const ownMember = await MemberProfile.findOne({ user: req.user.id }).select('_id');
+      const target = await MemberMembership.findById(req.params.id).select('member');
+      if (!target) return res.status(404).json({ success: false, error: 'Membership not found' });
+      if (!ownMember || target.member.toString() !== ownMember._id.toString()) {
+        return res.status(403).json({ success: false, error: 'Not authorized to update this membership' });
+      }
+    }
     const slot = await GymTimeSlot.findOne({ _id: req.body.slotId, status: 'active' });
     if (!slot) throw Object.assign(new Error('Select an active slot'), { statusCode: 400 });
+    if (slot.maxCapacity > 0 && slot.currentCapacity >= slot.maxCapacity) {
+      return res.status(409).json({ success: false, error: 'Selected time slot is full. Please choose another slot.' });
+    }
     await require('../utils/schedule').validateSlotHours(slot);
     const membership = await MemberMembership.findOneAndUpdate({ _id: req.params.id, status: 'pending' },
       { $set: { requestedSlot: slot._id, requestedTrainer: req.body.trainerId || null } }, { returnDocument: 'after' });

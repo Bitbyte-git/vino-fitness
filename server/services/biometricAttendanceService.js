@@ -4,6 +4,7 @@ const config = require('../config/env');
 const Station = require('../models/BiometricStationSession');
 const Verification = require('../models/BiometricVerificationSession');
 const Member = require('../models/MemberProfile');
+const TrainerProfile = require('../models/TrainerProfile');
 const User = require('../models/User');
 const Enrollment = require('../models/BiometricEnrollment');
 const Attendance = require('../models/MemberAttendance');
@@ -101,22 +102,30 @@ async function verificationFor(token, station, operator, session = null) {
 async function getCandidates(operator) {
   await actor(operator);
   const rows = await Enrollment.find({ isActive: true, enrollmentStatus: 'enrolled' })
-    .select('_id member enrollmentReference schemaVersion templateFormat +encryptedTemplate')
-    .populate('member', 'memberId fullName')
+    .select('_id member trainer user personType personName personCode enrollmentReference schemaVersion templateFormat +encryptedTemplate')
+    .populate('member', 'memberId fullName avatarInitials profilePicture')
+    .populate('trainer', 'trainerId fullName avatarInitials')
+    .populate('user', 'name email role')
     .sort({ _id: 1 })
     .limit(config.biometric.searchMaxCandidates)
     .lean();
 
   const candidates = [];
   for (const row of rows) {
-    const memberObjId = row.member?._id || row.member;
-    if (row.schemaVersion === 2 && row.templateFormat === 'FMR_V2005' && row.encryptedTemplate && memberObjId) {
+    if (row.user?.role === 'admin') continue; // Always exclude admin accounts!
+    const targetObjId = row.member?._id || row.trainer?._id || row.user?._id || row.member || row.trainer || row.user;
+    const pType = row.personType || (row.trainer ? 'trainer' : row.user?.role === 'reception' ? 'reception' : 'member');
+    const name = row.member?.fullName || row.trainer?.fullName || row.user?.name || row.personName || 'Gym User';
+    const code = row.member?.memberId || row.trainer?.trainerId || (pType === 'reception' ? 'STAFF' : '') || row.personCode || '';
+
+    if (row.schemaVersion === 2 && row.templateFormat === 'FMR_V2005' && row.encryptedTemplate && targetObjId) {
       try {
-        const decrypted = decrypt(row.encryptedTemplate, String(memberObjId) + ':' + row.enrollmentReference + ':template');
+        const decrypted = decrypt(row.encryptedTemplate, String(targetObjId) + ':' + row.enrollmentReference + ':template');
         candidates.push({
-          memberId: String(memberObjId),
-          memberCode: row.member?.memberId || undefined,
-          fullName: row.member?.fullName || undefined,
+          memberId: String(targetObjId),
+          memberCode: code,
+          fullName: name,
+          personType: pType,
           enrollmentReference: row.enrollmentReference,
           galleryTemplate: decrypted.toString('base64'),
           templateFormat: 'FMR_V2005',
@@ -132,7 +141,7 @@ async function identify({ stationToken, verificationToken, probeTemplate, templa
   const station = await stationFor(stationToken, operator);
   const verification = await verificationFor(verificationToken, station, operator);
   if (verification.state !== 'issued' || verification.expiresAt <= new Date()) throw error('VERIFICATION_EXPIRED', 'Verification is expired or no longer usable');
-  if (!engine.available()) return engine.identify(); // Explicit unavailable response, never a fabricated match.
+  if (!engine.available()) return engine.identify();
 
   if (matchedMemberId && matchedEnrollmentReference) {
     const result = await engine.identify({
@@ -152,8 +161,17 @@ async function identify({ stationToken, verificationToken, probeTemplate, templa
     await mongoose.connection.transaction(async session => {
       await actor(operator, session);
       await stationFor(stationToken, operator, session, { lock: true });
-      const enrollment = await Enrollment.findOne({ member: result.memberId, enrollmentReference: result.enrollmentReference,
-        isActive: true, enrollmentStatus: 'enrolled', schemaVersion: 2 }).session(session);
+      const enrollment = await Enrollment.findOne({
+        $or: [
+          { member: result.memberId },
+          { trainer: result.memberId },
+          { user: result.memberId },
+        ],
+        enrollmentReference: result.enrollmentReference,
+        isActive: true,
+        enrollmentStatus: 'enrolled',
+        schemaVersion: 2,
+      }).session(session);
       if (!enrollment) throw error('ENROLLMENT_INACTIVE', 'The identified enrollment is no longer active', 403);
       const updated = await Verification.updateOne({ _id: verification._id, state: 'issued', expiresAt: { $gt: new Date() } },
         { $set: { state: 'verified', member: result.memberId, enrollmentReference: result.enrollmentReference } }, { session });
@@ -166,7 +184,6 @@ async function identify({ stationToken, verificationToken, probeTemplate, templa
   const probe = decodeBase64(probeTemplate, 64 * 1024, 'Probe template');
   try {
     if (probe.subarray(0, 4).toString('ascii') !== 'FMR\0') throw error('INVALID_TEMPLATE', 'Invalid FMR template', 400);
-    // Only this server-owned provider may identify a member. Browser IDs/scores are not inputs.
     const result = await engine.identify({
       probe, templateFormat, challenge: verification.challenge, eventId: verification.eventId,
       stationContext: station.contextId, operator: String(operator), expiresAt: verification.expiresAt,
@@ -183,16 +200,26 @@ async function identify({ stationToken, verificationToken, probeTemplate, templa
     await mongoose.connection.transaction(async session => {
       await actor(operator, session);
       await stationFor(stationToken, operator, session, { lock: true });
-      const enrollment = await Enrollment.findOne({ member: result.memberId, enrollmentReference: result.enrollmentReference,
-        isActive: true, enrollmentStatus: 'enrolled', schemaVersion: 2 }).session(session);
+      const enrollment = await Enrollment.findOne({
+        $or: [
+          { member: result.memberId },
+          { trainer: result.memberId },
+          { user: result.memberId },
+        ],
+        enrollmentReference: result.enrollmentReference,
+        isActive: true,
+        enrollmentStatus: 'enrolled',
+        schemaVersion: 2,
+      }).session(session);
       if (!enrollment) throw error('ENROLLMENT_INACTIVE', 'The identified enrollment is no longer active', 403);
       const updated = await Verification.updateOne({ _id: verification._id, state: 'issued', expiresAt: { $gt: new Date() } },
         { $set: { state: 'verified', member: result.memberId, enrollmentReference: result.enrollmentReference } }, { session });
       if (!updated.modifiedCount) throw error('VERIFICATION_EXPIRED', 'Verification expired, was cancelled, or has already been used');
     });
-    return { verified: true, eventId: verification.eventId, ...(result.diagnostics ? { search: { comparisons: result.diagnostics.comparisons, elapsedMs: result.diagnostics.elapsedMs } } : {}) }; // No biometric bytes or untrusted score returned.
+    return { verified: true, eventId: verification.eventId, ...(result.diagnostics ? { search: { comparisons: result.diagnostics.comparisons, elapsedMs: result.diagnostics.elapsedMs } } : {}) };
   } finally { probe.fill(0); }
 }
+
 async function record({ stationToken, verificationToken, eventId }, operator) {
   await actor(operator);
   if (typeof eventId !== 'string' || !/^[0-9a-f-]{36}$/.test(eventId)) throw error('INVALID_EVENT', 'Use the server-issued event ID', 400);
@@ -202,31 +229,77 @@ async function record({ stationToken, verificationToken, eventId }, operator) {
     const priorStation = await stationFor(stationToken, operator, session, { active: false, now });
     const verification = await verificationFor(verificationToken, priorStation, operator, session);
     if (verification.eventId !== eventId) throw error('EVENT_MISMATCH', 'Idempotency key does not match the verification', 409);
-    // Exact retries return the committed snapshot even after pause/expiry, within 24h retention.
     if (verification.state === 'consumed') return verification.result;
     const station = await stationFor(stationToken, operator, session, { lock: true, now });
     if (verification.state !== 'verified' || verification.expiresAt <= now) throw error('UNTRUSTED_VERIFICATION', 'A fresh trusted identification is required', 403);
-    // Shared member document serializes concurrent stations. No client chooses member or action.
-    const member = await Member.findOneAndUpdate({ _id: verification.member }, { $inc: { attendanceVersion: 1 } },
+
+    // Resolve target person (Member, Trainer, or Reception user)
+    let personType = 'member';
+    let member = await Member.findOneAndUpdate({ _id: verification.member }, { $inc: { attendanceVersion: 1 } },
       { session, returnDocument: 'after' }).select('+lastBiometricPunchAt');
-    if (!member) throw error('MEMBER_NOT_FOUND', 'Member no longer exists', 404);
-    const enrollment = await Enrollment.findOne({ member: member._id, enrollmentReference: verification.enrollmentReference, isActive: true, enrollmentStatus: 'enrolled', schemaVersion: 2 }).session(session);
+    let trainer = null;
+    let userStaff = null;
+
+    if (!member) {
+      trainer = await TrainerProfile.findById(verification.member).session(session);
+      if (trainer) {
+        personType = 'trainer';
+      } else {
+        userStaff = await User.findById(verification.member).session(session);
+        if (userStaff && userStaff.role !== 'admin') {
+          personType = 'reception';
+        }
+      }
+    }
+
+    if (!member && !trainer && !userStaff) throw error('PERSON_NOT_FOUND', 'User record no longer exists', 404);
+
+    const enrollment = await Enrollment.findOne({
+      $or: [
+        ...(member ? [{ member: member._id }] : []),
+        ...(trainer ? [{ trainer: trainer._id }] : []),
+        ...(userStaff ? [{ user: userStaff._id }] : []),
+      ],
+      enrollmentReference: verification.enrollmentReference,
+      isActive: true,
+      enrollmentStatus: 'enrolled',
+      schemaVersion: 2,
+    }).session(session);
+
     if (!enrollment) throw error('ENROLLMENT_INACTIVE', 'Enrollment is inactive or has changed', 403);
-    const latest = await Attendance.findOne({ member: member._id }).sort({ checkInTime: -1 }).session(session);
-    const lastAt = Math.max(member.lastBiometricPunchAt?.getTime() || 0, latest?.checkInTime?.getTime() || 0, latest?.checkOutTime?.getTime() || 0);
+
+    const targetPersonId = member?._id || trainer?._id || userStaff?._id;
+    const queryAttendance = {};
+    if (personType === 'trainer') queryAttendance.trainer = targetPersonId;
+    else if (personType === 'reception') queryAttendance.user = targetPersonId;
+    else queryAttendance.member = targetPersonId;
+
+    const latest = await Attendance.findOne(queryAttendance).sort({ checkInTime: -1 }).session(session);
+    const lastAt = Math.max(
+      member?.lastBiometricPunchAt?.getTime() || 0,
+      latest?.checkInTime?.getTime() || 0,
+      latest?.checkOutTime?.getTime() || 0
+    );
     const remaining = Math.max(0, Math.ceil((lastAt + config.biometric.cooldownSeconds * 1000 - now.getTime()) / 1000));
-    const latched = String(station.lastRecordedMember || '') === String(member._id) && !station.sameMemberArmed;
+    const latched = String(station.lastRecordedMember || '') === String(targetPersonId) && !station.sameMemberArmed;
+
+    const fullName = member?.fullName || trainer?.fullName || userStaff?.name || 'Staff User';
+    const personCode = member?.memberId || trainer?.trainerId || (personType === 'reception' ? 'STAFF' : '') || '';
+    const avatarInitials = member?.avatarInitials || trainer?.avatarInitials || fullName.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase();
+
     let result = {
       eventId, recorded: false, action: 'duplicate', timestamp: now.toISOString(),
       member: {
-        id: member.id,
-        memberId: member.memberId,
-        fullName: member.fullName,
-        avatarInitials: member.avatarInitials || member.fullName.split(' ').map(p => p[0]).join('').slice(0, 2),
-        profilePicture: member.profilePicture || null,
+        id: String(targetPersonId),
+        memberId: personCode,
+        fullName: fullName,
+        avatarInitials: avatarInitials,
+        profilePicture: member?.profilePicture || null,
+        personType: personType,
       },
       timeZone: config.gym.timezone,
     };
+
     if (remaining || latched) {
       result = { ...result, code: 'DUPLICATE_SCAN', retryAfterSeconds: remaining, requiresRemovalConfirmation: latched,
         message: 'Attendance already recorded - please remove your finger' };
@@ -235,13 +308,12 @@ async function record({ stationToken, verificationToken, eventId }, operator) {
       const dayBounds = gymDayBounds(now);
 
       let attendance = null;
-      let openSession = await Attendance.findOne({ member: member._id, sessionOpen: true }).session(session);
+      let openSession = await Attendance.findOne({ ...queryAttendance, sessionOpen: true }).session(session);
 
       if (openSession?.branch && openSession.branch !== config.gym.branchId) {
         throw error('BRANCH_MISMATCH', 'This open visit belongs to another branch and requires staff review', 403);
       }
 
-      // If an open session exists whose session window has ended or belongs to a prior day, auto-checkout at session end time
       if (openSession && (openSession.attendanceDate < dayBounds.start || isSessionExpired(openSession, now, config.gym.timezone))) {
         const autoData = calculateAutoCheckout(openSession, now, config.gym.timezone);
         const autoPunch = {
@@ -266,7 +338,6 @@ async function record({ stationToken, verificationToken, eventId }, operator) {
       if (stale && config.biometric.stalePolicy === 'review') {
         result = { ...result, action: 'review', code: 'STALE_SESSION', message: 'An old open visit needs receptionist review. Use the authorized manual checkout after review.' };
       } else {
-
         const punchRecord = {
           punchTime: now,
           punchType: 'punch',
@@ -276,13 +347,12 @@ async function record({ stationToken, verificationToken, eventId }, operator) {
           receptionist: operator,
         };
 
-        const CHECKIN_GRACE_PERIOD_MS = 5 * 60 * 1000; // 5-minute grace period for confused re-punches
+        const CHECKIN_GRACE_PERIOD_MS = 5 * 60 * 1000;
 
         if (openSession) {
           const elapsedMs = now.getTime() - new Date(openSession.checkInTime).getTime();
 
           if (elapsedMs < CHECKIN_GRACE_PERIOD_MS) {
-            // Member punched again within 5 minutes of check-in -> show "Attendance already registered" without recording or checking out
             const remainingMinutes = Math.max(1, Math.ceil((CHECKIN_GRACE_PERIOD_MS - elapsedMs) / 60000));
             result = {
               ...result,
@@ -294,7 +364,6 @@ async function record({ stationToken, verificationToken, eventId }, operator) {
               message: `Attendance already registered at ${new Date(openSession.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}. Check-out available in ${remainingMinutes} min.`,
             };
           } else {
-            // Member is checking out after working out (>= 5 minutes)
             const duration = Math.max(1, Math.round(elapsedMs / 60000));
             punchRecord.punchType = 'checkout';
             const updated = await Attendance.findOneAndUpdate(
@@ -322,86 +391,77 @@ async function record({ stationToken, verificationToken, eventId }, operator) {
             }
           }
         } else {
-          // No currently open session. Check if member already attended this same session earlier today.
+          // No currently open session.
+          // Check if this person already attended and completed this session today (1 visit per session rule)
           const sessionRecord = await Attendance.findOne({
-            member: member._id,
+            ...queryAttendance,
             attendanceDate: dayBounds.start,
             sessionName: currentSession,
           }).session(session);
 
           if (sessionRecord) {
-            // Member is punching again in the same session -> update checkOutTime with the last incoming punch timestamp
-            const duration = Math.max(1, Math.round((now.getTime() - new Date(sessionRecord.checkInTime).getTime()) / 60000));
-            punchRecord.punchType = 'checkout';
-            const updated = await Attendance.findOneAndUpdate(
-              { _id: sessionRecord._id },
-              {
-                $set: {
-                  checkOutTime: now,
-                  sessionOpen: false,
-                  duration,
-                  checkOutVerificationReference: eventId,
-                  checkOutWorkstation: station.contextId,
-                  checkOutReceptionist: operator,
-                  updatedAt: now,
-                },
-                $push: { punches: punchRecord },
-              },
-              { session, returnDocument: 'after' }
-            );
-            if (!updated) throw error('SESSION_CHANGED', 'Attendance changed. No biometric action was recorded.');
-            attendance = updated;
-            result.action = 'checkout';
-            result.updatedCheckout = true;
-            if (sessionRecord.notes?.includes('Special opening')) {
-              result.isSpecialHours = true;
-            }
+            // Already attended 1 time in this session today!
+            const sessionLabel = currentSession.charAt(0).toUpperCase() + currentSession.slice(1);
+            const checkOutStr = sessionRecord.checkOutTime 
+              ? new Date(sessionRecord.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+              : '';
+
+            result = {
+              ...result,
+              recorded: false,
+              action: 'duplicate',
+              code: 'SESSION_ALREADY_COMPLETED',
+              sessionName: currentSession,
+              message: `Already attended the ${sessionLabel} session today${checkOutStr ? ` (completed at ${checkOutStr})` : ''}. 1 visit allowed per session (up to 3 sessions per day). Next session will be available soon!`,
+            };
           } else {
             // First punch of this session today -> Check-in!
             let slotAllocation;
             let validatedMembership;
             let isSpecialHours = false;
-            try {
-              ({ slotAllocation, membership: validatedMembership, isSpecialHours } = await validateAttendanceAccess(member, now, session));
-              if (validatedMembership) {
-                result.membership = {
-                  planName: validatedMembership.membershipPlan?.name || 'Membership Plan',
-                  startDate: validatedMembership.startDate,
-                  endDate: validatedMembership.endDate,
-                  status: validatedMembership.status,
-                };
-              }
-            } catch (failure) {
-              if (!failure.member) {
-                failure.member = {
-                  id: member._id,
-                  memberId: member.memberId,
-                  fullName: member.fullName,
-                  profilePicture: member.profilePicture || null,
-                  avatarInitials: member.avatarInitials || member.fullName?.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase() || 'VF',
-                };
-              }
-              if (!failure.membership) {
-                const latestM = await MemberMembership.findOne({ member: member._id })
-                  .populate('membershipPlan', 'name price duration')
-                  .sort({ endDate: -1, createdAt: -1 })
-                  .session(session);
-                if (latestM) {
-                  failure.membership = {
-                    planName: latestM.membershipPlan?.name || 'Membership Plan',
-                    startDate: latestM.startDate,
-                    endDate: latestM.endDate,
-                    status: latestM.status,
+
+            if (personType === 'member') {
+              try {
+                ({ slotAllocation, membership: validatedMembership, isSpecialHours } = await validateAttendanceAccess(member, now, session));
+                if (validatedMembership) {
+                  result.membership = {
+                    planName: validatedMembership.membershipPlan?.name || 'Membership Plan',
+                    startDate: validatedMembership.startDate,
+                    endDate: validatedMembership.endDate,
+                    status: validatedMembership.status,
                   };
                 }
+              } catch (failure) {
+                if (!failure.member) {
+                  failure.member = {
+                    id: member._id,
+                    memberId: member.memberId,
+                    fullName: member.fullName,
+                    profilePicture: member.profilePicture || null,
+                    avatarInitials: member.avatarInitials || member.fullName?.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase() || 'VF',
+                  };
+                }
+                if (!failure.membership) {
+                  const latestM = await MemberMembership.findOne({ member: member._id })
+                    .populate('membershipPlan', 'name price duration')
+                    .sort({ endDate: -1, createdAt: -1 })
+                    .session(session);
+                  if (latestM) {
+                    failure.membership = {
+                      planName: latestM.membershipPlan?.name || 'Membership Plan',
+                      startDate: latestM.startDate,
+                      endDate: latestM.endDate,
+                      status: latestM.status,
+                    };
+                  }
+                }
+                throw Object.assign(failure, { code: failure.code || 'MEMBERSHIP_INELIGIBLE' });
               }
-              throw Object.assign(failure, { code: failure.code || 'MEMBERSHIP_INELIGIBLE' });
             }
 
             punchRecord.punchType = 'checkin';
             const checkInNotes = isSpecialHours ? 'Special opening time attendance' : undefined;
-            [attendance] = await Attendance.create([{
-              member: member._id,
+            const createDoc = {
               branch: config.gym.branchId,
               attendanceDate: dayBounds.start,
               checkInTime: now,
@@ -414,18 +474,27 @@ async function record({ stationToken, verificationToken, eventId }, operator) {
               checkInWorkstation: station.contextId,
               checkInReceptionist: operator,
               deviceId: 'MFS500',
-              slotAllocation: slotAllocation?._id,
+              personType: personType,
+              personName: fullName,
+              personCode: personCode,
               notes: checkInNotes,
-            }], { session });
+            };
+            if (personType === 'trainer') createDoc.trainer = trainer._id;
+            else if (personType === 'reception') createDoc.user = userStaff._id;
+            else {
+              createDoc.member = member._id;
+              createDoc.slotAllocation = slotAllocation?._id;
+            }
+
+            [attendance] = await Attendance.create([createDoc], { session });
             result.action = 'checkin';
             result.isSpecialHours = Boolean(isSpecialHours);
           }
         }
 
         if (attendance) {
-          // Calculate total daily gym spending across all sessions today
           const todayRecords = await Attendance.find({
-            member: member._id,
+            ...queryAttendance,
             attendanceDate: dayBounds.start,
           }).session(session);
           const dailySpending = calculateDailySpending(todayRecords);
@@ -441,27 +510,34 @@ async function record({ stationToken, verificationToken, eventId }, operator) {
           const sessionLabel = (attendance.sessionName || currentSession).charAt(0).toUpperCase() +
             (attendance.sessionName || currentSession).slice(1);
           if (result.action === 'checkin') {
-            result.message = result.isSpecialHours
+            result.message = personType === 'trainer'
+              ? `Trainer Check-in recorded. Welcome Coach ${fullName}!`
+              : personType === 'reception'
+              ? `Staff Check-in recorded. Welcome ${fullName}!`
+              : result.isSpecialHours
               ? `Checked in (${sessionLabel} session - Special Opening Time)`
               : `Checked in (${sessionLabel} session)`;
           } else {
-            result.message = `${result.updatedCheckout ? 'Check-out updated' : 'Check-out recorded'}: ${formatDuration(attendance.duration)} in ${sessionLabel} session${result.isSpecialHours ? ' (Special Opening Time)' : ''} (Today's Total: ${dailySpending.totalHoursFormatted})`;
+            const rolePrefix = personType === 'trainer' ? 'Trainer ' : personType === 'reception' ? 'Staff ' : '';
+            result.message = `${rolePrefix}${result.updatedCheckout ? 'Check-out updated' : 'Check-out recorded'}: ${formatDuration(attendance.duration)} (${dailySpending.totalHoursFormatted} total today)`;
           }
 
           if (stale) result.staleSession = true;
-          await Member.updateOne({ _id: member._id }, { $set: { lastBiometricPunchAt: now } }, { session });
-          await Station.updateOne({ _id: station._id }, { $set: { lastRecordedMember: member._id, sameMemberArmed: false } }, { session });
+          if (member?._id) {
+            await Member.updateOne({ _id: member._id }, { $set: { lastBiometricPunchAt: now } }, { session });
+          }
+          await Station.updateOne({ _id: station._id }, { $set: { lastRecordedMember: targetPersonId, sameMemberArmed: false } }, { session });
           const counted = await Enrollment.updateOne({ _id: enrollment._id, enrollmentReference: verification.enrollmentReference },
             { $inc: { verificationCount: 1 }, $set: { lastVerificationDate: now } }, { session });
           if (!counted.modifiedCount) throw error('ENROLLMENT_CHANGED', 'Enrollment changed during recording');
         } else {
-          await Station.updateOne({ _id: station._id }, { $set: { lastRecordedMember: member._id, sameMemberArmed: false } }, { session });
+          await Station.updateOne({ _id: station._id }, { $set: { lastRecordedMember: targetPersonId, sameMemberArmed: false } }, { session });
         }
       }
     }
     await Verification.updateOne({ _id: verification._id, state: 'verified' }, { $set: { state: 'consumed', result } }, { session });
-    await Audit.create([{ user: operator, action: 'biometric_' + result.action, entityType: 'attendance', entityId: member._id,
-      changes: { eventId, station: station.contextId, branch: config.gym.branchId, recorded: result.recorded }, timestamp: now }], { session });
+    await Audit.create([{ user: operator, action: 'biometric_' + result.action, entityType: 'attendance', entityId: targetPersonId,
+      changes: { eventId, station: station.contextId, branch: config.gym.branchId, recorded: result.recorded, personType }, timestamp: now }], { session });
     return result;
   }, { readConcern: { level: 'snapshot' }, writeConcern: { w: 'majority' } });
 }
@@ -470,13 +546,40 @@ async function overview() {
   await autoCloseExpiredAttendance(now);
   const [count, rows, stale] = await Promise.all([
     Attendance.countDocuments({ sessionOpen: true }),
-    Attendance.find().select('member checkInTime checkOutTime').populate('member', 'fullName memberId avatarInitials profilePicture').sort({ updatedAt: -1 }).limit(20),
-    Attendance.find({ sessionOpen: true, checkInTime: { $lte: cutoff } }).select('member checkInTime').populate('member', 'fullName memberId').sort({ checkInTime: 1 }).limit(20),
+    Attendance.find()
+      .select('member trainer user personType personName personCode checkInTime checkOutTime')
+      .populate('member', 'fullName memberId avatarInitials profilePicture')
+      .populate('trainer', 'fullName trainerId avatarInitials')
+      .populate('user', 'name email role')
+      .sort({ updatedAt: -1 })
+      .limit(20),
+    Attendance.find({ sessionOpen: true, checkInTime: { $lte: cutoff } })
+      .select('member trainer user personType personName personCode checkInTime')
+      .populate('member', 'fullName memberId')
+      .populate('trainer', 'fullName trainerId')
+      .populate('user', 'name email')
+      .sort({ checkInTime: 1 })
+      .limit(20),
   ]);
-  const events = rows.flatMap(row => [
-    { id: row.id + ':in', member: row.member, action: 'checkin', timestamp: row.checkInTime },
-    ...(row.checkOutTime ? [{ id: row.id + ':out', member: row.member, action: 'checkout', timestamp: row.checkOutTime }] : []),
-  ]).sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
+  const events = rows.flatMap(row => {
+    const pType = row.personType || (row.trainer ? 'trainer' : row.user ? 'reception' : 'member');
+    const person = row.member || (row.trainer ? {
+      fullName: row.trainer.fullName,
+      memberId: row.trainer.trainerId,
+      personType: 'trainer',
+      avatarInitials: row.trainer.avatarInitials || row.trainer.fullName?.slice(0, 2).toUpperCase(),
+    } : row.user ? {
+      fullName: row.user.name || row.user.email,
+      memberId: 'STAFF',
+      personType: 'reception',
+      avatarInitials: (row.user.name || row.user.email)?.slice(0, 2).toUpperCase(),
+    } : { fullName: row.personName || 'User', memberId: row.personCode || '', personType: pType });
+
+    return [
+      { id: row.id + ':in', member: person, action: 'checkin', timestamp: row.checkInTime },
+      ...(row.checkOutTime ? [{ id: row.id + ':out', member: person, action: 'checkout', timestamp: row.checkOutTime }] : []),
+    ];
+  }).sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
   return { currentlyPresent: count, events, staleSessions: stale, ...capabilities() };
 }
 module.exports = { capabilities, openStation, closeStation, closeOperatorStations, confirmRemoval, issueVerification, identify, record, overview, getCandidates };

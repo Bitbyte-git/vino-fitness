@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   CheckCircle2,
   AlertCircle,
@@ -32,9 +32,15 @@ const formatDate = (dateVal) => {
 
 export default function AttendancePopup({ popup, onClose }) {
   const onCloseRef = useRef(onClose);
+  const [imgError, setImgError] = useState(false);
+
   useEffect(() => {
     onCloseRef.current = onClose;
   });
+
+  useEffect(() => {
+    setImgError(false);
+  }, [popup?.member?.id, popup?.member?.memberId, popup?.member?.profilePicture]);
 
   useEffect(() => {
     if (!popup || popup.isSilent) return;
@@ -55,7 +61,8 @@ export default function AttendancePopup({ popup, onClose }) {
   const modalTypeClass = isSuccess ? 'success' : isWarning ? 'warning' : isInfo ? 'info' : 'error';
   const member = popup.member || popup.errorData?.member;
   const membership = popup.membership || popup.errorData?.membership || member?.membership;
-  const hasPhoto = Boolean(member?.profilePicture);
+  const hasPhoto = Boolean(member?.profilePicture) && !imgError;
+  const initials = member?.avatarInitials || member?.fullName?.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase() || 'VF';
   const isEndDatePast = Boolean(membership?.endDate && new Date(membership.endDate) < new Date());
   const isPlanExpired = Boolean(
     popup.action === 'expired' ||
@@ -106,24 +113,23 @@ export default function AttendancePopup({ popup, onClose }) {
                     src={member.profilePicture}
                     alt={member.fullName || 'Member'}
                     className="attendance-popup-avatar-img"
-                    onError={(e) => {
-                      e.currentTarget.style.display = 'none';
-                      const fallback = e.currentTarget.parentElement?.querySelector('.attendance-avatar');
-                      if (fallback) fallback.style.display = 'grid';
-                    }}
+                    onError={() => setImgError(true)}
                   />
-                ) : null}
-                <span
-                  className="attendance-avatar"
-                  style={{ display: hasPhoto ? 'none' : 'grid' }}
-                >
-                  {member.avatarInitials || member.fullName?.slice(0, 2).toUpperCase() || 'VF'}
-                </span>
+                ) : (
+                  <div className="attendance-popup-avatar-fallback">
+                    {initials}
+                  </div>
+                )}
               </div>
               <div className="attendance-popup-member-info">
                 <div className="attendance-popup-member-name-row">
                   <b>{member.fullName || 'Member'}</b>
                   {member.memberId && <span className="attendance-member-code">{member.memberId}</span>}
+                  {member.personType && member.personType !== 'member' && (
+                    <span className={`attendee-role-badge ${member.personType === 'trainer' ? 'role-badge-trainer' : 'role-badge-staff'}`}>
+                      {member.personType === 'trainer' ? 'TRAINER' : 'STAFF'}
+                    </span>
+                  )}
                 </div>
                 <div className="attendance-popup-tags">
                   {isPlanExpired && (

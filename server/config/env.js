@@ -46,7 +46,7 @@ const config = {
     origin: [/.*/, ...productionAllowedOrigins, ...new Set([...configuredOrigins, ...localDevelopmentOrigins])],
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-Registration-Token'],
+    allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'X-Registration-Token', 'Idempotency-Key'],
     optionsSuccessStatus: 204,
   },
   biometric: {
@@ -67,7 +67,7 @@ const config = {
     searchTimeoutMs: Number(process.env.BIOMETRIC_SEARCH_TIMEOUT_MS || 15000),
   },
   payment: {
-    enabled: process.env.PAYMENT_GATEWAY_ENABLED === 'true',
+    enabled: !['false', '0', 'no'].includes(String(process.env.PAYMENT_GATEWAY_ENABLED || '').toLowerCase().trim()) && Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET),
     currency: 'inr',
     razorpay: {
       keyId: process.env.RAZORPAY_KEY_ID,

@@ -49,6 +49,7 @@ const receptionSections = ['dashboard', 'members', 'biometrics', 'plans', 'membe
 const trainerNav = [
   [LayoutDashboard, 'Overview', 'dashboard'],
   [Users, 'My members', 'members'],
+  [CalendarCheck, 'My attendance', 'attendance'],
   [Clock3, 'My availability', 'availability'],
   [Bell, 'Notifications', 'notifications'],
 ];
@@ -82,7 +83,7 @@ export default function Dashboard({ role = 'admin' }) {
   };
 
   return (
-    <div className="app-shell">
+    <div className={`app-shell${role === 'member' ? ' member-shell' : ''}${role === 'trainer' ? ' trainer-shell' : ''}${role === 'admin' ? ' admin-shell' : ''}${role === 'reception' ? ' reception-shell admin-shell' : ''}`}>
       <aside className={menu ? 'side open' : 'side'}>
         <div className="side-top">
           <Brand onClick={() => nav('/')} subtitle="UNISEX FITNESS STUDIO" size="md" />
@@ -144,8 +145,8 @@ export default function Dashboard({ role = 'admin' }) {
             {staffWorkspace && (current !== 'dashboard' || user?.role !== 'admin') && <button className="lime-btn" onClick={() => nav('/register')}>
               <Plus /> Register member
             </button>}
-            {role === 'member' && <button className="lime-btn" onClick={() => nav('/member/membership')}>
-              <Plus /> View membership
+            {role === 'member' && current !== 'membership' && <button className="lime-btn" onClick={() => nav('/member/membership')}>
+              <CreditCard /> My membership
             </button>}
           </div>
         </header>
@@ -154,6 +155,29 @@ export default function Dashboard({ role = 'admin' }) {
           ? current === 'biometrics' ? <Biometrics user={user} /> : <Operations section={current} user={user} query={query} />
           : <div className="dash-content"><p>This section is unavailable for your role.</p></div>)}
       </main>
+      {role === 'member' && (
+        <nav className="member-mobile-nav" aria-label="Member mobile navigation">
+          {[
+            [LayoutDashboard, 'Overview', 'dashboard'],
+            [CreditCard, 'Plans', 'membership'],
+            [CalendarCheck, 'Check-ins', 'attendance'],
+            [ReceiptIndianRupee, 'Payments', 'payments'],
+          ].map(([Icon, label, path]) => (
+            <button
+              key={path}
+              className={current === path ? 'active' : ''}
+              onClick={() => nav(`/member/${path}`)}
+            >
+              <Icon size={18} />
+              <span>{label}</span>
+            </button>
+          ))}
+          <button className={menu ? 'active' : ''} onClick={() => setMenu(true)}>
+            <Menu size={18} />
+            <span>More</span>
+          </button>
+        </nav>
+      )}
     </div>
   );
 }
@@ -286,6 +310,7 @@ function Overview({ role, onNavigate }) {
     );
   }
   if (role === 'member') return <MemberOverview user={user} stats={stats} onNavigate={onNavigate} />;
+  if (role === 'trainer') return <TrainerOverview user={user} stats={stats} onNavigate={onNavigate} />;
 
   const trainer = role === 'trainer';
   const staffWorkspace = role === 'admin' || role === 'reception';
@@ -499,6 +524,44 @@ function MemberOverview({ user, stats, onNavigate }) {
           <span>{member?.height ? `${member.height} cm` : 'Height not recorded'} · {member?.weight ? `${member.weight} kg` : 'Weight not recorded'}</span>
         </article>
       </section>
+      <section className="member-quick-section">
+        <div className="member-quick-head">
+          <span>QUICK ACCESS</span>
+          <h3>Your fitness hub</h3>
+        </div>
+        <div className="member-quick-grid">
+          <button onClick={() => onNavigate('/member/membership')}>
+            <CreditCard size={18} />
+            <span><b>Memberships</b><small>Renew, switch slot &amp; pay</small></span>
+            <ChevronRight size={16} />
+          </button>
+          <button onClick={() => onNavigate('/member/attendance')}>
+            <CalendarCheck size={18} />
+            <span><b>Attendance</b><small>Daily check-ins &amp; duration</small></span>
+            <ChevronRight size={16} />
+          </button>
+          <button onClick={() => onNavigate('/member/payments')}>
+            <ReceiptIndianRupee size={18} />
+            <span><b>Payments</b><small>Invoices &amp; transaction history</small></span>
+            <ChevronRight size={16} />
+          </button>
+          <button onClick={() => onNavigate('/member/coach')}>
+            <Dumbbell size={18} />
+            <span><b>My Trainer</b><small>Assigned coach details</small></span>
+            <ChevronRight size={16} />
+          </button>
+          <button onClick={() => onNavigate('/member/schedule')}>
+            <Clock3 size={18} />
+            <span><b>My Slot</b><small>Daily gym session timing</small></span>
+            <ChevronRight size={16} />
+          </button>
+          <button onClick={() => onNavigate('/member/biometrics')}>
+            <Fingerprint size={18} />
+            <span><b>Fingerprint ID</b><small>Biometric scanner status</small></span>
+            <ChevronRight size={16} />
+          </button>
+        </div>
+      </section>
     </div>
   );
 }
@@ -553,5 +616,277 @@ function MemberTable({ compact = false, rows = [], onViewAll }) {
         </table>
       </div>
     </section>
+  );
+}
+
+function TrainerOverview({ user, stats, onNavigate }) {
+  const trainer = stats?.trainer;
+  const attendanceTrend = stats?.attendanceTrend || [];
+  const goalDistribution = stats?.goalDistribution || [];
+  const assignedMembers = stats?.assignedMembers || [];
+  const availability = stats?.availability || [];
+  const currentlyCheckedIn = stats?.currentlyCheckedIn || 0;
+  const assignedClients = stats?.assignedClients || 0;
+  const todaySessions = stats?.todaySessions || 0;
+  const weeklyWorkouts = stats?.weeklyWorkouts || 0;
+
+  const tooltipStyle = { background: '#151912', border: '1px solid #252D1B', borderRadius: 8, color: '#F5F7F2' };
+
+  return (
+    <div className="dash-content trainer-dashboard-content">
+      {/* 1. Trainer Hero Card */}
+      <div className="trainer-hero-card">
+        <div className="trainer-hero-info">
+          <div className="trainer-avatar-ring">
+            <span>{user?.name ? user.name.slice(0, 2).toUpperCase() : 'TR'}</span>
+          </div>
+          <div>
+            <div className="trainer-hero-badge-row">
+              <span className="trainer-badge-specialty">
+                <Dumbbell size={13} /> {trainer?.specialization || 'Fitness Coach'}
+              </span>
+              {trainer?.experience ? (
+                <span className="trainer-badge-exp">{trainer.experience} Yrs Coaching</span>
+              ) : null}
+            </div>
+            <h2>Coach {user?.name || 'Trainer'}</h2>
+            <p>Your studio coaching dashboard. Track client check-ins, fitness goals and schedule.</p>
+          </div>
+        </div>
+
+        <div className="trainer-hero-actions-cluster">
+          {currentlyCheckedIn > 0 ? (
+            <div className="trainer-live-indicator">
+              <span className="live-dot-pulse" />
+              <span><b>{currentlyCheckedIn}</b> Client{currentlyCheckedIn === 1 ? '' : 's'} in studio now</span>
+            </div>
+          ) : (
+            <div className="trainer-live-indicator idle">
+              <span className="idle-dot" />
+              <span>Studio Floor Ready</span>
+            </div>
+          )}
+          <div className="trainer-cta-buttons">
+            <button className="lime-btn" onClick={() => onNavigate('/trainer/members')}>
+              <Users size={15} /> My Members ({assignedClients})
+            </button>
+            <button className="outline-btn" onClick={() => onNavigate('/trainer/availability')}>
+              <Clock3 size={15} /> Weekly Schedule
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* 2. KPI Metrics Grid */}
+      <section className="trainer-kpi-grid">
+        <article className="trainer-kpi-card" onClick={() => onNavigate('/trainer/members')}>
+          <div className="kpi-icon-wrap lime">
+            <Users size={20} />
+          </div>
+          <div className="kpi-body">
+            <span className="kpi-label">Active Clients</span>
+            <h3>{assignedClients}</h3>
+            <small className="kpi-sub"><ArrowUpRight size={13} /> Active coaching roster</small>
+          </div>
+        </article>
+
+        <article className="trainer-kpi-card" onClick={() => onNavigate('/trainer/members')}>
+          <div className="kpi-icon-wrap emerald">
+            <CalendarCheck size={20} />
+          </div>
+          <div className="kpi-body">
+            <span className="kpi-label">Today's Sessions</span>
+            <h3>{todaySessions}</h3>
+            <small className="kpi-sub"><Activity size={13} /> Client workouts today</small>
+          </div>
+        </article>
+
+        <article className="trainer-kpi-card" onClick={() => onNavigate('/trainer/members')}>
+          <div className="kpi-icon-wrap orange">
+            <Flame size={20} />
+          </div>
+          <div className="kpi-body">
+            <span className="kpi-label">In Studio Now</span>
+            <h3>{currentlyCheckedIn}</h3>
+            <small className="kpi-sub"><Clock3 size={13} /> Currently active in gym</small>
+          </div>
+        </article>
+
+        <article className="trainer-kpi-card" onClick={() => onNavigate('/trainer/members')}>
+          <div className="kpi-icon-wrap sky">
+            <Dumbbell size={20} />
+          </div>
+          <div className="kpi-body">
+            <span className="kpi-label">Weekly Sessions</span>
+            <h3>{weeklyWorkouts}</h3>
+            <small className="kpi-sub"><Target size={13} /> Completed past 7 days</small>
+          </div>
+        </article>
+      </section>
+
+      {/* 3. Interactive Analytics Grid */}
+      <section className="trainer-analytics-grid">
+        {/* Attendance Area Chart */}
+        <article className="trainer-card chart-wide">
+          <div className="trainer-card-head">
+            <div>
+              <span className="eyebrow-tag">WORKOUT ACTIVITY</span>
+              <h3>Client Check-ins (Last 7 Days)</h3>
+            </div>
+            <span className="trend-badge">{weeklyWorkouts} total this week</span>
+          </div>
+          <div className="chart-body" style={{ height: 240, marginTop: 14 }}>
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={attendanceTrend} margin={{ left: -20, right: 10, top: 10, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="trainerAttendanceFill" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#C6FF00" stopOpacity={0.28} />
+                    <stop offset="100%" stopColor="#C6FF00" stopOpacity={0.0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid stroke="#22281e" vertical={false} strokeDasharray="3 3" />
+                <XAxis
+                  dataKey="date"
+                  tickFormatter={val => new Date(`${val}T00:00:00`).toLocaleDateString('en-IN', { weekday: 'short' })}
+                  axisLine={false}
+                  tickLine={false}
+                  tick={{ fill: '#889082', fontSize: 11 }}
+                />
+                <YAxis allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#889082', fontSize: 11 }} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Area type="monotone" dataKey="checkIns" stroke="#C6FF00" strokeWidth={3} fill="url(#trainerAttendanceFill)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </article>
+
+        {/* Client Goals Donut Chart */}
+        <article className="trainer-card chart-donut">
+          <div className="trainer-card-head">
+            <div>
+              <span className="eyebrow-tag">CLIENT TARGETS</span>
+              <h3>Fitness Goals Breakdown</h3>
+            </div>
+          </div>
+          <div className="donut-layout" style={{ marginTop: 14 }}>
+            {goalDistribution.length ? (
+              <>
+                <div className="donut-chart" style={{ width: 170, height: 170 }}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie data={goalDistribution} dataKey="value" nameKey="name" innerRadius={52} outerRadius={78} paddingAngle={3}>
+                        {goalDistribution.map((item, index) => (
+                          <Cell key={item.name} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={tooltipStyle} />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <strong>{assignedClients}<small>Clients</small></strong>
+                </div>
+                <div className="chart-legend">
+                  {goalDistribution.map((item, index) => (
+                    <p key={item.name}>
+                      <i style={{ background: CHART_COLORS[index % CHART_COLORS.length] }} />
+                      <span>{item.name}</span>
+                      <b>{item.value}</b>
+                    </p>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p className="chart-empty">Assigned client goals will appear here.</p>
+            )}
+          </div>
+        </article>
+      </section>
+
+      {/* 4. Interactive Bottom Grid: Active Client Roster & Availability Schedule */}
+      <section className="trainer-lower-grid">
+        {/* Active Client Roster Card */}
+        <article className="trainer-card">
+          <div className="trainer-card-head">
+            <div>
+              <span className="eyebrow-tag">ACTIVE ROSTER</span>
+              <h3>Assigned Member Directory</h3>
+            </div>
+            <button className="text-lime-btn" onClick={() => onNavigate('/trainer/members')}>
+              View all {assignedClients} <ChevronRight size={14} />
+            </button>
+          </div>
+
+          <div className="trainer-roster-list">
+            {assignedMembers.length ? (
+              assignedMembers.map(member => (
+                <div key={member._id} className="trainer-roster-item" onClick={() => onNavigate('/trainer/members')}>
+                  <div className="roster-avatar">
+                    {member.fullName ? member.fullName.slice(0, 2).toUpperCase() : 'M'}
+                  </div>
+                  <div className="roster-meta">
+                    <div className="roster-name-row">
+                      <h4>{member.fullName}</h4>
+                      <span className="roster-id-pill">{member.memberId}</span>
+                    </div>
+                    <div className="roster-sub-row">
+                      <span className="roster-plan-tag">{member.planName}</span>
+                      {member.fitnessGoal && (
+                        <span className="roster-goal-tag">
+                          {member.fitnessGoal.replace(/_/g, ' ')}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="roster-action-arrow">
+                    <ChevronRight size={16} />
+                  </div>
+                </div>
+              ))
+            ) : (
+              <p className="chart-empty">No active client assignments found.</p>
+            )}
+          </div>
+        </article>
+
+        {/* Weekly Working Timings Schedule */}
+        <article className="trainer-card">
+          <div className="trainer-card-head">
+            <div>
+              <span className="eyebrow-tag">SCHEDULE</span>
+              <h3>Coaching Shifts & Hours</h3>
+            </div>
+            <button className="text-lime-btn" onClick={() => onNavigate('/trainer/availability')}>
+              Full Schedule <ChevronRight size={14} />
+            </button>
+          </div>
+
+          <div className="trainer-schedule-list">
+            {availability.length ? (
+              availability.map(slot => (
+                <div key={slot._id || slot.dayOfWeek} className="schedule-day-row">
+                  <div className="day-name-pill">
+                    {slot.dayOfWeek ? slot.dayOfWeek.slice(0, 3).toUpperCase() : 'DAY'}
+                  </div>
+                  <div className="shift-hours">
+                    <strong>{slot.startTime || '06:00'} - {slot.endTime || '22:00'}</strong>
+                    {slot.breakStartTime && (
+                      <small className="break-note">Break: {slot.breakStartTime} - {slot.breakEndTime}</small>
+                    )}
+                  </div>
+                  <div className="capacity-indicator">
+                    <span>Max {slot.maxClients || 5} clients</span>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="schedule-empty-box">
+                <Clock3 size={24} color="var(--lime)" />
+                <p>Standard Studio Hours Active</p>
+                <small>Mon - Sat (06:00 AM - 10:00 PM)</small>
+              </div>
+            )}
+          </div>
+        </article>
+      </section>
+    </div>
   );
 }

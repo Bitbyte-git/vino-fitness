@@ -6,7 +6,12 @@ const envelope = new mongoose.Schema({
   keyVersion: { type: String, required: true },
 }, { _id: false });
 const schema = new mongoose.Schema({
-  member: { type: mongoose.Schema.Types.ObjectId, ref: 'MemberProfile', required: true, unique: true },
+  member: { type: mongoose.Schema.Types.ObjectId, ref: 'MemberProfile', sparse: true },
+  trainer: { type: mongoose.Schema.Types.ObjectId, ref: 'TrainerProfile', sparse: true },
+  user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', sparse: true },
+  personType: { type: String, enum: ['member', 'trainer', 'reception'], default: 'member' },
+  personName: String,
+  personCode: String,
   enrollmentReference: { type: String, required: true, unique: true },
   // Legacy device identifier is preserved; model and serial are separate for new records.
   deviceId: { type: String, required: true },

@@ -59,13 +59,36 @@ exports.getTrainerClients = async (req, res, next) => {
       trainer: req.params.trainerId,
       status: 'active',
     })
-      .populate('member', 'memberId fullName mobileNumber')
+      .populate('member', 'memberId fullName mobileNumber fitnessGoal height weight exerciseExperience healthNotes physicalLimitations')
       .sort({ startDate: -1 });
+
+    const memberIds = allocations.map(a => a.member?._id || a.member).filter(Boolean);
+    const MemberSlotAllocation = require('../models/MemberSlotAllocation');
+    const slotAllocations = await MemberSlotAllocation.find({
+      member: { $in: memberIds },
+      status: 'active',
+    }).populate('timeSlot', 'name startTime endTime dayOfWeek');
+
+    const slotMap = new Map();
+    for (const sa of slotAllocations) {
+      if (sa.member && sa.timeSlot) {
+        slotMap.set(String(sa.member), sa.timeSlot);
+      }
+    }
+
+    const enriched = allocations.map(a => {
+      const obj = a.toObject();
+      const slot = slotMap.get(String(obj.member?._id || obj.member));
+      obj.timeSlot = slot || null;
+      obj.dailyGymTime = slot ? `${slot.startTime} – ${slot.endTime} (${slot.name})` : 'Flexible Timing';
+      obj.fitnessGoal = obj.member?.fitnessGoal || 'general_fitness';
+      return obj;
+    });
 
     res.status(200).json({
       success: true,
-      count: allocations.length,
-      data: allocations,
+      count: enriched.length,
+      data: enriched,
     });
   } catch (error) {
     next(error);

@@ -7,6 +7,7 @@ const {
   getAttendance,
   getAttendanceRecord,
   getMemberAttendance,
+  getTrainerAttendance,
   getTodayAttendance,
   biometricCheckIn,
   biometricCheckOut,
@@ -37,6 +38,7 @@ router.post('/biometric/record', biometric.record);
 router.get('/today', protect, authorize('admin', 'reception'), getTodayAttendance);
 router.get('/stats', protect, authorize('admin'), getAttendanceStats);
 router.get('/member/:memberId', protect, authorizeMemberParam('memberId'), getMemberAttendance);
+router.get('/trainer/:trainerId', protect, getTrainerAttendance);
 router.post('/manual-checkin', protect, authorize('admin', 'reception'), auditLogger('manual_checkin', 'attendance'), manualCheckIn);
 router.post('/manual-checkout', protect, authorize('admin', 'reception'), auditLogger('manual_checkout', 'attendance'), manualCheckOut);
 router.put('/:id/correct', protect, authorize('admin'), auditLogger('correct', 'attendance'), correctAttendance);
@@ -44,7 +46,7 @@ router.put('/:id/correct', protect, authorize('admin'), auditLogger('correct', '
 // Generic routes
 router
   .route('/')
-  .get(protect, authorize('admin', 'reception'), getAttendance);
+  .get(protect, authorize('admin', 'reception', 'trainer'), getAttendance);
 
 router
   .route('/:id')

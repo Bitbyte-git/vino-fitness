@@ -5,6 +5,7 @@ const MemberAttendance = require('../models/MemberAttendance');
 const Payment = require('../models/Payment');
 const TrainerClientAllocation = require('../models/TrainerClientAllocation');
 const GymTimeSlot = require('../models/GymTimeSlot');
+const TrainerAvailability = require('../models/TrainerAvailability');
 const config = require('../config/env');
 const { gymDayBounds } = require('../utils/gymDate');
 const { calculateDailySpending } = require('../utils/gymSession');
@@ -154,26 +155,120 @@ exports.getTrainerDashboard = async (req, res, next) => {
     const activeAllocations = await TrainerClientAllocation.find({
       trainer: trainerProfile._id,
       status: 'active',
-    }).select('member');
-    const assignedClients = activeAllocations.length;
+    }).populate({
+      path: 'member',
+      select: 'fullName memberId mobileNumber fitnessGoal height weight profilePicture createdAt'
+    });
 
-    // Today's sessions
+    const memberIds = activeAllocations.map(a => a.member?._id || a.member).filter(Boolean);
+    const assignedClients = memberIds.length;
+
+    // Fetch latest memberships for assigned members to get plan names
+    const memberships = memberIds.length
+      ? await MemberMembership.find({ member: { $in: memberIds } })
+          .populate('membershipPlan', 'name')
+          .sort({ createdAt: -1 })
+      : [];
+
+    const latestPlanMap = new Map();
+    for (const ms of memberships) {
+      const mid = String(ms.member);
+      if (!latestPlanMap.has(mid)) {
+        latestPlanMap.set(mid, ms.membershipPlan?.name || 'Studio Member');
+      }
+    }
+
+    // Today's sessions & currently checked-in
     const { start: today, end: tomorrow } = gymDayBounds();
-    const todaySessions = activeAllocations.length
+    const todaySessions = memberIds.length
       ? await MemberAttendance.countDocuments({
-          member: { $in: activeAllocations.map(allocation => allocation.member) },
-          attendanceDate: {
-            $gte: today,
-            $lt: tomorrow,
-          },
+          member: { $in: memberIds },
+          attendanceDate: { $gte: today, $lt: tomorrow },
         })
       : 0;
+
+    const currentlyCheckedIn = memberIds.length
+      ? await MemberAttendance.countDocuments({
+          member: { $in: memberIds },
+          attendanceDate: { $gte: today, $lt: tomorrow },
+          $or: [{ sessionOpen: true }, { checkOutTime: { $exists: false } }, { checkOutTime: null }]
+        })
+      : 0;
+
+    // 7-day attendance trend of their assigned members
+    const sevenDaysAgo = new Date(today);
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    const weeklyAttendances = memberIds.length
+      ? await MemberAttendance.find({
+          member: { $in: memberIds },
+          attendanceDate: { $gte: sevenDaysAgo, $lt: tomorrow }
+        }).select('attendanceDate checkInTime member')
+      : [];
+
+    const weeklyTrendMap = new Map();
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(sevenDaysAgo);
+      d.setDate(d.getDate() + i);
+      const key = d.toISOString().split('T')[0];
+      weeklyTrendMap.set(key, 0);
+    }
+    weeklyAttendances.forEach(a => {
+      if (a.attendanceDate) {
+        const key = a.attendanceDate.toISOString().split('T')[0];
+        if (weeklyTrendMap.has(key)) {
+          weeklyTrendMap.set(key, weeklyTrendMap.get(key) + 1);
+        }
+      }
+    });
+    const attendanceTrend = Array.from(weeklyTrendMap.entries()).map(([date, checkIns]) => ({
+      date,
+      checkIns
+    }));
+
+    // Fitness goals breakdown of assigned members
+    const goalCounts = {};
+    activeAllocations.forEach(a => {
+      const goal = (a.member?.fitnessGoal || 'general_fitness').replace(/_/g, ' ');
+      const titleGoal = goal.charAt(0).toUpperCase() + goal.slice(1);
+      goalCounts[titleGoal] = (goalCounts[titleGoal] || 0) + 1;
+    });
+    const goalDistribution = Object.entries(goalCounts).map(([name, value]) => ({ name, value }));
+
+    // Trainer's weekly availability schedule
+    const availability = await TrainerAvailability.find({
+      trainer: trainerProfile._id,
+      isActive: true,
+    }).sort({ dayOfWeek: 1 });
+
+    // Recent active assigned members for interactive roster
+    const assignedMembers = activeAllocations.slice(0, 8).map(a => ({
+      _id: a.member?._id,
+      fullName: a.member?.fullName || 'Client',
+      memberId: a.member?.memberId || 'GYM',
+      mobileNumber: a.member?.mobileNumber,
+      fitnessGoal: a.member?.fitnessGoal,
+      profilePicture: a.member?.profilePicture,
+      startDate: a.startDate,
+      planName: latestPlanMap.get(String(a.member?._id)) || 'Studio Member'
+    }));
 
     res.status(200).json({
       success: true,
       data: {
+        trainer: {
+          fullName: trainerProfile.fullName,
+          trainerId: trainerProfile.trainerId,
+          specialization: trainerProfile.specialization,
+          experience: trainerProfile.experience,
+        },
         assignedClients,
         todaySessions,
+        currentlyCheckedIn,
+        weeklyWorkouts: weeklyAttendances.length,
+        attendanceTrend,
+        goalDistribution,
+        availability,
+        assignedMembers,
       },
     });
   } catch (error) {

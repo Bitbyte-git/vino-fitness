@@ -234,6 +234,20 @@ export default function Biometrics({ user }) {
               <span className="meta-sep">•</span>
               Enrolled: {new Date(enrollment.enrollmentDate).toLocaleDateString([], { day: 'numeric', month: 'short', year: 'numeric' })}
             </p>
+            {own && (
+              <div className="active-enrollment-actions" style={{ marginTop: '12px' }}>
+                <button
+                  type="button"
+                  className={replace ? 'lime-btn' : 'outline-btn'}
+                  disabled={busy}
+                  onClick={() => { setReplace(r => !r); setCapture(null); }}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Fingerprint size={15} />
+                  <span>{replace ? 'Cancel Replace Mode' : 'Update / Replace Fingerprint'}</span>
+                </button>
+              </div>
+            )}
             {!own && (
               <p className="active-enrollment-hint">
                 Already enrolled. To edit or replace this fingerprint, open the <strong>Members</strong> module and use the fingerprint action.

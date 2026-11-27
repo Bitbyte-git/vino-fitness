@@ -19,7 +19,7 @@ const { validateAttendanceAccess } = require('../services/attendanceAccess');
 // @access  Private (Admin, Reception)
 exports.getAttendance = async (req, res, next) => {
   try {
-    const { startDate, endDate, memberId, sessionName, attendanceStatus } = req.query;
+    const { startDate, endDate, memberId, trainerId, userId, personType, sessionName, attendanceStatus } = req.query;
     
     let query = {};
     
@@ -29,6 +29,24 @@ exports.getAttendance = async (req, res, next) => {
     
     if (memberId) {
       query.member = memberId;
+    }
+
+    if (trainerId) {
+      query.trainer = trainerId;
+    }
+
+    if (userId) {
+      query.user = userId;
+    }
+
+    if (personType && personType !== 'all') {
+      query.personType = personType;
+    }
+
+    if (req.user.role === 'trainer') {
+      const TrainerProfile = require('../models/TrainerProfile');
+      const trainer = await TrainerProfile.findOne({ user: req.user.id || req.user._id });
+      if (trainer) query.trainer = trainer._id;
     }
 
     if (sessionName && sessionName !== 'all') {
@@ -41,6 +59,8 @@ exports.getAttendance = async (req, res, next) => {
 
     const attendance = await MemberAttendance.find(query)
       .populate('member', 'memberId fullName mobileNumber avatarInitials profilePicture')
+      .populate('trainer', 'trainerId fullName mobileNumber specialization avatarInitials')
+      .populate('user', 'name email role')
       .populate('slotAllocation')
       .sort({ attendanceDate: -1, checkInTime: -1 });
 
@@ -60,6 +80,33 @@ exports.getAttendance = async (req, res, next) => {
         isExpired: error.isExpired,
       });
     }
+    next(error);
+  }
+};
+
+exports.getTrainerAttendance = async (req, res, next) => {
+  try {
+    const TrainerProfile = require('../models/TrainerProfile');
+    let trainerId = req.params.trainerId;
+    const trainer = await TrainerProfile.findOne({
+      $or: [
+        { _id: trainerId },
+        { user: trainerId },
+      ],
+    });
+    if (!trainer) {
+      return res.status(200).json({ success: true, count: 0, data: [] });
+    }
+    const attendance = await MemberAttendance.find({ trainer: trainer._id })
+      .populate('trainer', 'trainerId fullName mobileNumber specialization avatarInitials')
+      .sort({ attendanceDate: -1, checkInTime: -1 });
+
+    res.status(200).json({
+      success: true,
+      count: attendance.length,
+      data: attendance,
+    });
+  } catch (error) {
     next(error);
   }
 };
@@ -240,7 +287,7 @@ exports.biometricCheckOut = unavailableBiometricAttendance;
 // @access  Private (Admin, Reception)
 exports.manualCheckIn = async (req, res, next) => {
   try {
-    const { memberId, notes } = req.body;
+    const { memberId, trainerId, userId, notes } = req.body;
     const manualSetting = await SystemSetting.findOne({ key: 'allow_manual_attendance' });
     if (manualSetting?.value === false) {
       return res.status(403).json({ success: false, error: 'Manual attendance is disabled by gym settings' });
@@ -249,23 +296,62 @@ exports.manualCheckIn = async (req, res, next) => {
       return res.status(400).json({ success: false, error: 'Attendance notes must be 500 characters or fewer' });
     }
 
-    const member = await MemberProfile.findById(memberId);
-    if (!member) {
-      return res.status(404).json({
-        success: false,
-        error: 'Member not found',
-      });
+    let personType = 'member';
+    let member = null;
+    let trainer = null;
+    let userStaff = null;
+    let targetPersonId = null;
+    let queryAttendance = {};
+    let personName = '';
+    let personCode = '';
+    let slotAllocation = null;
+
+    if (trainerId) {
+      trainer = await TrainerProfile.findById(trainerId);
+      if (!trainer) return res.status(404).json({ success: false, error: 'Trainer not found' });
+      personType = 'trainer';
+      targetPersonId = trainer._id;
+      queryAttendance.trainer = trainer._id;
+      personName = trainer.fullName;
+      personCode = trainer.trainerId;
+    } else if (userId) {
+      userStaff = await User.findById(userId);
+      if (!userStaff) return res.status(404).json({ success: false, error: 'Staff account not found' });
+      if (userStaff.role === 'admin') {
+        return res.status(403).json({ success: false, error: 'Admins cannot be marked for gym attendance' });
+      }
+      personType = 'reception';
+      targetPersonId = userStaff._id;
+      queryAttendance.user = userStaff._id;
+      personName = userStaff.name || userStaff.email;
+      personCode = 'STAFF';
+    } else if (memberId) {
+      member = await MemberProfile.findById(memberId);
+      if (!member) {
+        return res.status(404).json({
+          success: false,
+          error: 'Member not found',
+        });
+      }
+      personType = 'member';
+      targetPersonId = member._id;
+      queryAttendance.member = member._id;
+      personName = member.fullName;
+      personCode = member.memberId;
+      const validated = await validateAttendanceAccess(member);
+      slotAllocation = validated.slotAllocation;
+    } else {
+      return res.status(400).json({ success: false, error: 'memberId, trainerId, or userId is required' });
     }
-    const { slotAllocation } = await validateAttendanceAccess(member);
 
     const now = new Date();
     const { start: today } = gymDayBounds(now);
     const currentSession = getSessionName(now, config.gym.timezone);
 
     // Auto-close open session if its session window ended or from a previous day
-    await autoCloseExpiredAttendance(now, { member: memberId });
+    await autoCloseExpiredAttendance(now, queryAttendance);
     await MemberAttendance.updateMany({
-      member: memberId,
+      ...queryAttendance,
       sessionOpen: true,
       attendanceDate: { $lt: today },
     }, {
@@ -277,19 +363,43 @@ exports.manualCheckIn = async (req, res, next) => {
     });
 
     const existingSession = await MemberAttendance.findOne({
-      member: memberId,
+      ...queryAttendance,
       sessionOpen: true,
     });
 
     if (existingSession) {
       return res.status(400).json({
         success: false,
-        error: 'Member currently has an active open session. Please check out first.',
+        error: `${personType === 'trainer' ? 'Trainer' : personType === 'reception' ? 'Staff' : 'Member'} currently has an active open session. Please check out first.`,
+      });
+    }
+
+    // 1 visit per session rule (up to 3 sessions per day)
+    const sessionRecord = await MemberAttendance.findOne({
+      ...queryAttendance,
+      attendanceDate: today,
+      sessionName: currentSession,
+      sessionOpen: false,
+    });
+
+    if (sessionRecord) {
+      const sessionLabel = currentSession.charAt(0).toUpperCase() + currentSession.slice(1);
+      const checkOutStr = sessionRecord.checkOutTime 
+        ? new Date(sessionRecord.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        : '';
+      return res.status(400).json({
+        success: false,
+        error: `Already attended the ${sessionLabel} session today${checkOutStr ? ` (completed at ${checkOutStr})` : ''}. 1 visit allowed per session (up to 3 sessions per day).`,
       });
     }
 
     const attendance = await MemberAttendance.create({
-      member: memberId,
+      member: member ? member._id : undefined,
+      trainer: trainer ? trainer._id : undefined,
+      user: userStaff ? userStaff._id : undefined,
+      personType,
+      personName,
+      personCode,
       attendanceDate: today,
       checkInTime: now,
       sessionOpen: true,
@@ -307,13 +417,15 @@ exports.manualCheckIn = async (req, res, next) => {
     });
 
     const todayRecords = await MemberAttendance.find({
-      member: memberId,
+      ...queryAttendance,
       attendanceDate: today,
     });
     const dailySpending = calculateDailySpending(todayRecords);
 
     const populatedAttendance = await MemberAttendance.findById(attendance._id)
-      .populate('member', 'memberId fullName mobileNumber avatarInitials profilePicture');
+      .populate('member', 'memberId fullName mobileNumber avatarInitials profilePicture')
+      .populate('trainer', 'trainerId fullName specialization avatarInitials')
+      .populate('user', 'name email role');
 
     res.status(201).json({
       success: true,
@@ -340,15 +452,25 @@ exports.manualCheckIn = async (req, res, next) => {
 // @access  Private (Admin, Reception)
 exports.manualCheckOut = async (req, res, next) => {
   try {
-    const { memberId, notes } = req.body;
+    const { attendanceId, memberId, trainerId, userId, notes } = req.body;
     if (notes !== undefined && (typeof notes !== 'string' || notes.length > 500)) {
       return res.status(400).json({ success: false, error: 'Attendance notes must be 500 characters or fewer' });
     }
 
-    const attendance = await MemberAttendance.findOne({
-      member: memberId,
-      sessionOpen: true,
-    });
+    let query = { sessionOpen: true };
+    if (attendanceId) {
+      query._id = attendanceId;
+    } else if (trainerId) {
+      query.trainer = trainerId;
+    } else if (userId) {
+      query.user = userId;
+    } else if (memberId) {
+      query.member = memberId;
+    } else {
+      return res.status(400).json({ success: false, error: 'attendanceId, memberId, trainerId, or userId is required' });
+    }
+
+    const attendance = await MemberAttendance.findOne(query);
 
     if (!attendance) {
       return res.status(400).json({
@@ -403,7 +525,11 @@ exports.manualCheckOut = async (req, res, next) => {
 
     const { start: today } = gymDayBounds(checkOutTime);
     const todayRecords = await MemberAttendance.find({
-      member: memberId,
+      $or: [
+        ...(checkedOutAttendance.member ? [{ member: checkedOutAttendance.member }] : []),
+        ...(checkedOutAttendance.trainer ? [{ trainer: checkedOutAttendance.trainer }] : []),
+        ...(checkedOutAttendance.user ? [{ user: checkedOutAttendance.user }] : []),
+      ],
       attendanceDate: today,
     });
     const dailySpending = calculateDailySpending(todayRecords);

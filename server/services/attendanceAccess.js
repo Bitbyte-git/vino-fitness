@@ -180,11 +180,9 @@ const validateAttendanceAccess = async (member, now = new Date(), session = null
 
   const isSpecialHours = Boolean(isOutsideScheduledHours);
 
-  const timingSetting = await SystemSetting.findOne({ key: 'enforce_slot_timing' }).session(session);
-  const enforceSlotTiming = timingSetting ? timingSetting.value === true : false;
   let slotAllocation = null;
 
-  // Always attempt to link member's current slot allocation for reporting/analytics if present
+  // Link member's current slot allocation for reporting/analytics if present
   try {
     slotAllocation = await MemberSlotAllocation.findOne({
       member: member._id,
@@ -196,16 +194,8 @@ const validateAttendanceAccess = async (member, now = new Date(), session = null
     slotAllocation = null;
   }
 
-  // Only enforce strict time window if explicitly configured to true in settings
-  if (enforceSlotTiming && slotAllocation?.timeSlot) {
-    const slot = slotAllocation.timeSlot;
-    if (slot.status !== 'active' || currentTime < slot.startTime || currentTime >= slot.endTime) {
-      const error = new Error(`Check-in blocked. Assigned time: ${displaySlot(slot)}.`);
-      error.statusCode = 403;
-      throw error;
-    }
-  }
-
+  // Note: Gym operates on 3 daily sessions (Morning, Afternoon, Evening).
+  // Members have unrestricted entry across any of the 3 sessions (1 visit per session, up to 3 visits per day).
   return { membership, slotAllocation, isSpecialHours, operatingHours };
 };
 

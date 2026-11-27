@@ -19,6 +19,7 @@ import {
   Check,
   Save,
   RotateCcw,
+  Target,
 } from 'lucide-react';
 import api from '../services/api';
 import { useAuth } from '../contexts/AuthContext';
@@ -63,6 +64,7 @@ export default function MemberProfileModal({ member, onClose, onUpdate }) {
   const account = currentMember.user || {};
   const active = currentMember.membershipStatus === 'active' && account.isActive !== false;
   const [profilePic, setProfilePic] = useState(currentMember.profilePicture);
+  const [imgError, setImgError] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState('');
   const [membership, setMembership] = useState(currentMember.latestMembership || null);
@@ -92,6 +94,7 @@ export default function MemberProfileModal({ member, onClose, onUpdate }) {
   useEffect(() => {
     setCurrentMember(member);
     setProfilePic(member.profilePicture);
+    setImgError(false);
     setFormData({
       fullName: member.fullName || '',
       mobileNumber: member.mobileNumber || '',
@@ -240,6 +243,19 @@ export default function MemberProfileModal({ member, onClose, onUpdate }) {
     }
   };
 
+  const heightNum = Number(currentMember.height) || 0;
+  const weightNum = Number(currentMember.weight) || 0;
+  let bmiValue = null;
+  let bmiCategory = '';
+  if (heightNum > 0 && weightNum > 0) {
+    const val = weightNum / ((heightNum / 100) * (heightNum / 100));
+    bmiValue = val.toFixed(1);
+    if (val < 18.5) bmiCategory = 'Underweight';
+    else if (val <= 24.9) bmiCategory = 'Healthy';
+    else if (val <= 29.9) bmiCategory = 'Overweight';
+    else bmiCategory = 'Obese';
+  }
+
   return (
     <div
       className="member-modal-overlay"
@@ -263,39 +279,38 @@ export default function MemberProfileModal({ member, onClose, onUpdate }) {
           </button>
 
           <div className="member-profile-avatar-wrap">
-            {profilePic ? (
+            {profilePic && !imgError ? (
               <img
                 src={profilePic}
                 alt={currentMember.fullName}
                 className="member-profile-avatar-img"
-                onError={(e) => {
-                  e.currentTarget.style.display = 'none';
-                  if (e.currentTarget.nextElementSibling) e.currentTarget.nextElementSibling.style.display = 'grid';
-                }}
+                onError={() => setImgError(true)}
               />
-            ) : null}
-            <div
-              className="member-profile-avatar member-avatar-initials"
-              style={{
-                display: profilePic ? 'none' : 'grid',
-                background: 'linear-gradient(135deg, rgba(212, 255, 0, 0.18) 0%, rgba(18, 26, 20, 0.95) 100%)',
-                color: '#d4ff00',
-                border: 'none',
-                boxShadow: 'inset 0 0 14px rgba(212, 255, 0, 0.08)',
-              }}
-            >
-              {initials(currentMember.fullName)}
-            </div>
-            <button
-              type="button"
-              className="member-profile-avatar-edit-btn"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={uploading || saving}
-              title="Upload / Change Member Photo"
-              aria-label="Upload photo"
-            >
-              {uploading ? <Loader2 size={13} className="spin" /> : <Camera size={13} />}
-            </button>
+            ) : (
+              <div
+                className="member-profile-avatar member-avatar-initials"
+                style={{
+                  background: 'linear-gradient(135deg, rgba(201, 255, 24, 0.18) 0%, rgba(18, 26, 20, 0.95) 100%)',
+                  color: 'var(--lime, #c9ff18)',
+                  border: '1px solid rgba(201, 255, 24, 0.28)',
+                  boxShadow: 'inset 0 0 14px rgba(201, 255, 24, 0.08)',
+                }}
+              >
+                {initials(currentMember.fullName)}
+              </div>
+            )}
+            {canEdit && (
+              <button
+                type="button"
+                className="member-profile-avatar-edit-btn"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading || saving}
+                title="Upload / Change Member Photo"
+                aria-label="Upload photo"
+              >
+                {uploading ? <Loader2 size={13} className="spin" /> : <Camera size={13} />}
+              </button>
+            )}
             <input
               type="file"
               ref={fileInputRef}
@@ -312,11 +327,6 @@ export default function MemberProfileModal({ member, onClose, onUpdate }) {
               <span className="member-id-capsule">{currentMember.memberId || 'GYM-NEW'}</span>
               <span className="meta-sep">•</span>
               <span className="joined-date-text">Joined {date(currentMember.createdAt)}</span>
-              <span className="meta-sep">•</span>
-              <span className={`member-profile-status ${active ? 'active' : ''}`}>
-                <span className="status-dot" />
-                <span className="status-text">{active ? 'ACTIVE' : text(currentMember.membershipStatus || 'INACTIVE')}</span>
-              </span>
             </div>
             {uploadError && <small className="avatar-upload-err">{uploadError}</small>}
           </div>
@@ -578,85 +588,120 @@ export default function MemberProfileModal({ member, onClose, onUpdate }) {
                 <strong>{currentMember.weight ? `${currentMember.weight} kg` : '—'}</strong>
               </div>
               <div className="metric-box">
-                <small>FITNESS GOAL</small>
-                <strong>{text(currentMember.fitnessGoal)}</strong>
+                <small>BODY BMI</small>
+                <strong>{bmiValue ? `${bmiValue}  ${bmiCategory}` : '—'}</strong>
               </div>
               <div className="metric-box">
-                <small>EXPERIENCE</small>
-                <strong>{text(currentMember.exerciseExperience)}</strong>
+                <small>{user?.role === 'trainer' ? 'STUDIO STATUS' : 'EXPERIENCE'}</small>
+                <strong>{user?.role === 'trainer' ? (active ? 'Active' : text(currentMember.membershipStatus || 'Inactive')) : text(currentMember.exerciseExperience)}</strong>
               </div>
             </section>
 
             <div className="member-profile-body">
-              {/* Latest Membership Plan Section */}
-              <section className="member-profile-section member-plan-profile-section">
-                <div className="member-section-title">
-                  <CreditCard size={17} />
-                  <div>
-                    <h3>Latest Membership Plan</h3>
-                    <p>Active plan subscription and validity dates</p>
+              {/* Trainer Coaching Focus OR Admin Membership Plan Section */}
+              {user?.role === 'trainer' ? (
+                <section className="member-profile-section trainer-coaching-section">
+                  <div className="member-section-title">
+                    <Target size={17} className="text-lime" />
+                    <div>
+                      <h3>Training Purpose & Daily Gym Schedule</h3>
+                      <p>Member workout objective, reserved time window, and experience level</p>
+                    </div>
                   </div>
-                </div>
-
-                {loadingMembership ? (
-                  <div className="member-plan-loading-state">
-                    <Loader2 size={18} className="spin" />
-                    <span>Loading membership plan...</span>
-                  </div>
-                ) : membership ? (
-                  <div className={`attendance-popup-plan-card ${isExpired ? 'expired' : 'active'}`}>
-                    <div className="attendance-popup-plan-header">
-                      <div className="attendance-popup-plan-title">
-                        <CreditCard size={16} className="plan-icon" />
-                        <span className="plan-display-name">{planName}</span>
-                        {planDuration && (
-                          <span className="plan-duration-pill">{planDuration}</span>
-                        )}
+                  <div className="trainer-coaching-grid">
+                    <div className="coaching-focus-box">
+                      <span className="coaching-focus-label">PRIMARY PURPOSE / GOAL</span>
+                      <div className="coaching-goal-val">
+                        <Target size={18} className="text-lime" />
+                        <strong>{text(currentMember.fitnessGoal || 'General Fitness')}</strong>
                       </div>
-                      <div className="plan-status-pills">
-                        <span className={`attendance-popup-plan-status ${isExpired ? 'expired' : 'active'}`}>
-                          {isExpired ? 'EXPIRED' : (membership.status || 'ACTIVE').toUpperCase()}
-                        </span>
-                        {membership.paymentStatus && (
-                          <span className={`plan-pay-pill ${membership.paymentStatus}`}>
-                            {membership.paymentStatus.toUpperCase()}
+                    </div>
+                    <div className="coaching-focus-box">
+                      <span className="coaching-focus-label">DAILY GYM ACCESS TIME</span>
+                      <div className="coaching-time-val">
+                        <Clock size={18} className="text-lime" />
+                        <strong>{currentMember.dailyGymTime || 'Flexible Timing'}</strong>
+                      </div>
+                    </div>
+                    <div className="coaching-focus-box">
+                      <span className="coaching-focus-label">LIFTING / FITNESS EXPERIENCE</span>
+                      <div className="coaching-exp-val">
+                        <Activity size={18} className="text-lime" />
+                        <strong>{text(currentMember.exerciseExperience || 'Beginner')}</strong>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+              ) : (
+                <section className="member-profile-section member-plan-profile-section">
+                  <div className="member-section-title">
+                    <CreditCard size={17} />
+                    <div>
+                      <h3>Latest Membership Plan</h3>
+                      <p>Active plan subscription and validity dates</p>
+                    </div>
+                  </div>
+
+                  {loadingMembership ? (
+                    <div className="member-plan-loading-state">
+                      <Loader2 size={18} className="spin" />
+                      <span>Loading membership plan...</span>
+                    </div>
+                  ) : membership ? (
+                    <div className={`attendance-popup-plan-card ${isExpired ? 'expired' : 'active'}`}>
+                      <div className="attendance-popup-plan-header">
+                        <div className="attendance-popup-plan-title">
+                          <CreditCard size={16} className="plan-icon" />
+                          <span className="plan-display-name">{planName}</span>
+                          {planDuration && (
+                            <span className="plan-duration-pill">{planDuration}</span>
+                          )}
+                        </div>
+                        <div className="plan-status-pills">
+                          <span className={`attendance-popup-plan-status ${isExpired ? 'expired' : 'active'}`}>
+                            {isExpired ? 'EXPIRED' : (membership.status || 'ACTIVE').toUpperCase()}
                           </span>
-                        )}
+                          {membership.paymentStatus && (
+                            <span className={`plan-pay-pill ${membership.paymentStatus}`}>
+                              {membership.paymentStatus.toUpperCase()}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                    </div>
 
-                    <div className="attendance-popup-plan-dates">
-                      <div className="plan-date-col">
-                        <span className="plan-date-label">Plan From Date</span>
-                        <strong className="plan-date-val">
-                          {date(membership.startDate)}
-                        </strong>
+                      <div className="attendance-popup-plan-dates">
+                        <div className="plan-date-col">
+                          <span className="plan-date-label">Plan From Date</span>
+                          <strong className="plan-date-val">
+                            {date(membership.startDate)}
+                          </strong>
+                        </div>
+                        <div className="plan-date-divider">
+                          <ArrowRight size={15} />
+                        </div>
+                        <div className="plan-date-col">
+                          <span className="plan-date-label">Ended Date</span>
+                          <strong className={`plan-date-val ${isExpired ? 'expired' : 'active'}`}>
+                            {date(membership.endDate)}
+                          </strong>
+                        </div>
                       </div>
-                      <div className="plan-date-divider">
-                        <ArrowRight size={15} />
-                      </div>
-                      <div className="plan-date-col">
-                        <span className="plan-date-label">Ended Date</span>
-                        <strong className={`plan-date-val ${isExpired ? 'expired' : 'active'}`}>
-                          {date(membership.endDate)}
-                        </strong>
-                      </div>
-                    </div>
 
-                    {daysInfo && (
-                      <div className={`plan-days-info ${isExpired ? 'expired' : 'active'}`}>
-                        <Clock size={13} />
-                        <span>{daysInfo}</span>
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <div className="member-plan-empty-banner">
-                    <AlertTriangle size={16} className="text-coral" />
-                    <span>No active membership plan currently registered for this member.</span>
-                  </div>
-                )}
-              </section>
+                      {daysInfo && (
+                        <div className={`plan-days-info ${isExpired ? 'expired' : 'active'}`}>
+                          <Clock size={13} />
+                          <span>{daysInfo}</span>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="member-plan-empty-banner">
+                      <AlertTriangle size={16} className="text-coral" />
+                      <span>No active membership plan currently registered for this member.</span>
+                    </div>
+                  )}
+                </section>
+              )}
 
               {/* Personal Information */}
               <section className="member-profile-section">
@@ -756,6 +801,6 @@ export default function MemberProfileModal({ member, onClose, onUpdate }) {
           </>
         )}
       </article>
-    </div>
+    </div >
   );
 }

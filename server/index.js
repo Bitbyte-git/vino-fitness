@@ -2,11 +2,9 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const { rateLimit } = require('express-rate-limit');
-const { RedisStore } = require('rate-limit-redis');
 const { v4: uuidv4 } = require('uuid');
 const config = require('./config/env');
 const connectDB = require('./config/db');
-const { getRedisClient, isRedisReady } = require('./config/redis');
 const errorHandler = require('./middleware/errorHandler');
 
 // Import routes
@@ -63,18 +61,6 @@ const createRateLimiter = (windowMs, limit, message, options = {}) => {
     ...options,
   };
 
-  // Wire Redis distributed store if Redis is connected
-  if (isRedisReady()) {
-    try {
-      limiterConfig.store = new RedisStore({
-        sendCommand: (...args) => getRedisClient().call(...args),
-        prefix: 'rl:',
-      });
-    } catch (err) {
-      console.warn(`[RateLimit] Redis store init error, falling back to memory: ${err.message}`);
-    }
-  }
-
   return rateLimit(limiterConfig);
 };
 app.use('/api/auth/login', createRateLimiter(
@@ -121,7 +107,6 @@ app.use('/api/registration', registrationRoutes);
 // Health check endpoint (for K8s Liveness & Readiness Probes and Load Balancers)
 app.get('/api/health', (req, res) => {
   const databaseReady = require('mongoose').connection.readyState === 1;
-  const redisReady = isRedisReady();
   const healthy = databaseReady;
 
   res.status(healthy ? 200 : 503).json({
@@ -130,7 +115,6 @@ app.get('/api/health', (req, res) => {
     message: healthy ? 'Vino Fitness Studio API is ready' : 'Database connection unavailable',
     services: {
       database: databaseReady ? 'connected' : 'unavailable',
-      redis: redisReady ? 'connected' : 'in-memory-fallback',
     },
     uptime: Math.floor(process.uptime()),
     memoryUsageMB: Math.round(process.memoryUsage().rss / (1024 * 1024)),

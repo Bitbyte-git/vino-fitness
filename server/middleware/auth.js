@@ -26,7 +26,7 @@ exports.protect = async (req, res, next) => {
         error: 'Not authorized to access this route',
       });
     }
-    req.user = { id: user._id.toString(), role: user.role };
+    req.user = { id: user._id.toString(), _id: user._id, role: user.role };
     next();
   } catch (error) {
     if (error.name !== 'JsonWebTokenError' && error.name !== 'TokenExpiredError') {

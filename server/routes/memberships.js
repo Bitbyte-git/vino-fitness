@@ -18,7 +18,7 @@ const {
 router
   .route('/')
   .get(protect, authorize('admin', 'reception'), getMemberships)
-  .post(protect, authorize('admin', 'reception'), auditLogger('create', 'membership'), createMembership);
+  .post(protect, authorize('admin', 'reception', 'member'), auditLogger('create', 'membership'), createMembership);
 
 router
   .route('/:id')
@@ -31,9 +31,9 @@ router
     getMembership
   );
 
-router.patch('/:id/selection', protect, authorize('admin', 'reception'), auditLogger('update_selection', 'membership'), require('../controllers/membershipController').updatePendingSelection);
+router.patch('/:id/selection', protect, authorize('admin', 'reception', 'member'), auditLogger('update_selection', 'membership'), require('../controllers/membershipController').updatePendingSelection);
 
-router.post('/:id/renew', protect, authorize('admin', 'reception'), auditLogger('renew', 'membership'), renewMembership);
+router.post('/:id/renew', protect, authorize('admin', 'reception', 'member'), auditLogger('renew', 'membership'), renewMembership);
 router.post('/:id/change', protect, authorize('admin', 'reception'), auditLogger('change', 'membership'), changeMembership);
 router.post('/:id/cancel', protect, authorize('admin'), auditLogger('cancel', 'membership'), cancelMembership);
 router.post('/:id/freeze', protect, authorize('admin'), auditLogger('freeze', 'membership'), freezeMembership);

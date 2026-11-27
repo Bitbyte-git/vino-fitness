@@ -130,20 +130,36 @@ exports.getMember = async (req, res, next) => {
     }
 
     const memberData = member.toObject();
-    if (['trainer', 'reception'].includes(req.user.role)) {
+    if (req.user.role === 'reception') {
       delete memberData.previousDiseases;
       delete memberData.recentOperations;
       delete memberData.healthNotes;
       delete memberData.physicalLimitations;
     }
 
-    const latestMembership = await MemberMembership.findOne({ member: member._id })
-      .populate('membershipPlan')
-      .populate('requestedSlot')
-      .populate('requestedTrainer')
-      .sort({ createdAt: -1 });
+    // Attach member's active slot and daily gym time
+    const MemberSlotAllocation = require('../models/MemberSlotAllocation');
+    const slotAlloc = await MemberSlotAllocation.findOne({ member: member._id, status: 'active' })
+      .populate('timeSlot', 'name startTime endTime dayOfWeek');
+    if (slotAlloc?.timeSlot) {
+      memberData.dailyGymTime = `${slotAlloc.timeSlot.startTime} – ${slotAlloc.timeSlot.endTime} (${slotAlloc.timeSlot.name})`;
+      memberData.timeSlot = slotAlloc.timeSlot;
+    } else {
+      memberData.dailyGymTime = 'Flexible Timing';
+    }
 
-    memberData.latestMembership = latestMembership || null;
+    // Trainers coach workouts and daily gym sessions; they do not manage membership billing or fees
+    if (req.user.role === 'trainer') {
+      memberData.latestMembership = null;
+    } else {
+      const latestMembership = await MemberMembership.findOne({ member: member._id })
+        .populate('membershipPlan')
+        .populate('requestedSlot')
+        .populate('requestedTrainer')
+        .sort({ createdAt: -1 });
+
+      memberData.latestMembership = latestMembership || null;
+    }
 
     res.status(200).json({
       success: true,
