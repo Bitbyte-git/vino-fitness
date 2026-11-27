@@ -2,43 +2,60 @@ import { useEffect, useRef, useState } from 'react';
 
 export default function ApiDocs() {
   const containerRef = useRef(null);
-  const [loaded, setLoaded] = useState(false);
 
   const backendBaseUrl = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
   const jsonUrl = `${backendBaseUrl}/api-docs.json`;
   const directDocsUrl = `${backendBaseUrl}/api-docs/`;
 
   useEffect(() => {
-    // Inject Swagger UI CDN CSS
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://unpkg.com/swagger-ui-dist@5/swagger-ui.css';
-    document.head.appendChild(link);
+    let unmounted = false;
 
-    // Inject Swagger UI Bundle script
-    const script = document.createElement('script');
-    script.src = 'https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js';
-    script.crossOrigin = 'anonymous';
-    script.onload = () => {
-      if (window.SwaggerUIBundle && containerRef.current) {
-        window.SwaggerUIBundle({
-          url: jsonUrl,
-          domNode: containerRef.current,
-          deepLinking: true,
-          presets: [
-            window.SwaggerUIBundle.presets.apis,
-          ],
-        });
-        setLoaded(true);
-      }
+    // 1. Ensure CSS link exists in head without duplicate appending
+    let link = document.querySelector('link[data-swagger-css]');
+    if (!link) {
+      link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'https://unpkg.com/swagger-ui-dist@5/swagger-ui.css';
+      link.setAttribute('data-swagger-css', 'true');
+      document.head.appendChild(link);
+    }
+
+    const initSwagger = () => {
+      if (unmounted || !window.SwaggerUIBundle || !containerRef.current) return;
+      // Isolate external DOM mutations inside an unmanaged inner wrapper
+      containerRef.current.innerHTML = '';
+      const targetDiv = document.createElement('div');
+      containerRef.current.appendChild(targetDiv);
+
+      window.SwaggerUIBundle({
+        url: jsonUrl,
+        domNode: targetDiv,
+        deepLinking: true,
+        presets: [window.SwaggerUIBundle.presets.apis],
+      });
     };
-    document.body.appendChild(script);
+
+    if (window.SwaggerUIBundle) {
+      initSwagger();
+    } else {
+      let script = document.querySelector('script[data-swagger-js]');
+      if (!script) {
+        script = document.createElement('script');
+        script.src = 'https://unpkg.com/swagger-ui-dist@5/swagger-ui-bundle.js';
+        script.crossOrigin = 'anonymous';
+        script.setAttribute('data-swagger-js', 'true');
+        script.onload = () => initSwagger();
+        document.body.appendChild(script);
+      } else {
+        script.addEventListener('load', initSwagger, { once: true });
+      }
+    }
 
     return () => {
-      try {
-        if (link.parentNode) link.parentNode.removeChild(link);
-        if (script.parentNode) script.parentNode.removeChild(script);
-      } catch {}
+      unmounted = true;
+      if (containerRef.current) {
+        containerRef.current.innerHTML = '';
+      }
     };
   }, [jsonUrl]);
 
@@ -101,13 +118,7 @@ export default function ApiDocs() {
             padding: '16px',
             minHeight: '600px'
           }}
-        >
-          {!loaded && (
-            <div style={{ textAlign: 'center', padding: '60px 20px', color: '#333333' }}>
-              <p>Loading API Documentation from {jsonUrl}...</p>
-            </div>
-          )}
-        </div>
+        />
       </main>
     </div>
   );
