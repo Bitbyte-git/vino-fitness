@@ -37,6 +37,15 @@
   padding: 0 6px 14px !important;
 }
 
+.side-backdrop {
+  position: fixed !important;
+  inset: 0 !important;
+  background: rgba(0, 0, 0, 0.65) !important;
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+  z-index: 999 !important;
+}
+
 /* Studio location badge */
 .location {
   display: flex !important;

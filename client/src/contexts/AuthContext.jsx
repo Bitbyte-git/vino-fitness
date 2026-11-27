@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from 'react';
 import { authService } from '../services';
+import { setAuthToken } from '../services/api';
 
 const AuthContext = createContext(null);
 
@@ -12,12 +13,13 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   const checkAuth = async () => {
-    // Clean up any legacy localStorage tokens
+    // Purge any residual tokens from localStorage completely
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     try {
       const response = await authService.getMe();
-      setUser(response.data.data.user);
+      const userData = response.data?.data?.user;
+      setUser(userData || null);
     } catch (error) {
       setUser(null);
     } finally {
@@ -27,9 +29,12 @@ export const AuthProvider = ({ children }) => {
 
   const login = async (credentials) => {
     const response = await authService.login(credentials);
-    const { user: userData } = response.data.data;
+    const { user: userData, accessToken } = response.data.data;
     
-    // Purge tokens from localStorage completely (handled via HttpOnly cookies)
+    // Store in-memory only; purge tokens from localStorage completely
+    if (accessToken) {
+      setAuthToken(accessToken);
+    }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     setUser(userData);
@@ -44,6 +49,7 @@ export const AuthProvider = ({ children }) => {
     } catch (error) {
       console.error('Logout error:', error);
     }
+    setAuthToken(null);
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     setUser(null);
@@ -51,8 +57,11 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (data) => {
     const response = await authService.register(data);
-    const { user: userData } = response.data.data;
+    const { user: userData, accessToken } = response.data.data;
     
+    if (accessToken) {
+      setAuthToken(accessToken);
+    }
     localStorage.removeItem('accessToken');
     localStorage.removeItem('refreshToken');
     setUser(userData);
@@ -79,3 +88,4 @@ export const useAuth = () => {
   }
   return context;
 };
+

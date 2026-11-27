@@ -30,7 +30,7 @@ const serializeUser = (user, profile) => ({
 });
 
 const getCookieOptions = (maxAgeMs) => {
-  const isProd = config.nodeEnv === 'production';
+  const isProd = config.nodeEnv === 'production' || process.env.NODE_ENV === 'production' || process.env.RENDER === 'true';
   return {
     httpOnly: true,
     secure: isProd,

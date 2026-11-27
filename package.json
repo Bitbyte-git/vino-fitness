@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "concurrently \"npm run server:dev\" \"npm run client\"",
     "server": "node server/index.js",
-    "client": "vite client",
+    "client": "vite client --force",
     "build": "vite build client",
     "preview": "vite preview client",
     "test": "node --test --test-concurrency=1 server/tests/*.test.js",

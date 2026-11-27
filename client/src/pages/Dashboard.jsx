@@ -84,6 +84,7 @@ export default function Dashboard({ role = 'admin' }) {
 
   return (
     <div className={`app-shell${role === 'member' ? ' member-shell' : ''}${role === 'trainer' ? ' trainer-shell' : ''}${role === 'admin' ? ' admin-shell' : ''}${role === 'reception' ? ' reception-shell admin-shell' : ''}`}>
+      {menu && <div className="side-backdrop" onClick={() => setMenu(false)} />}
       <aside className={menu ? 'side open' : 'side'}>
         <div className="side-top">
           <Brand onClick={() => nav('/')} subtitle="UNISEX FITNESS STUDIO" size="md" />
