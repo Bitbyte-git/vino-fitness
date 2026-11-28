@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Dumbbell, Flame, Zap, Users, HeartPulse, ArrowRight, Check } from 'lucide-react';
 import PublicLayout from '../components/PublicLayout';
 import '../luxury-pages.css';
@@ -84,7 +84,25 @@ const programs = [
 
 export default function Programs() {
   const navigate = useNavigate();
-  const [activeId, setActiveId] = useState('strength');
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requested = searchParams.get('program') || searchParams.get('p');
+
+  const [activeId, setActiveId] = useState(() => {
+    return programs.some((p) => p.id === requested) ? requested : 'strength';
+  });
+
+  useEffect(() => {
+    const p = searchParams.get('program') || searchParams.get('p');
+    if (p && programs.some((item) => item.id === p)) {
+      setActiveId(p);
+    }
+  }, [searchParams]);
+
+  const handleProgramSelect = (id) => {
+    setActiveId(id);
+    setSearchParams({ program: id });
+  };
+
   const current = programs.find((p) => p.id === activeId) || programs[0];
 
   return (
@@ -110,7 +128,7 @@ export default function Programs() {
               <button
                 key={p.id}
                 className={`luxury-segment-btn ${activeId === p.id ? 'active' : ''}`}
-                onClick={() => setActiveId(p.id)}
+                onClick={() => handleProgramSelect(p.id)}
               >
                 {p.short}
               </button>

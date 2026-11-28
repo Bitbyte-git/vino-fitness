@@ -96,11 +96,11 @@ export function PublicFooter() {
           {/* Col 2: Training Disciplines */}
           <div className="studio-footer-nav-col">
             <h4>TRAINING</h4>
-            <Link to="/programs">Strength & Power</Link>
-            <Link to="/programs">HIIT Conditioning</Link>
-            <Link to="/programs">Functional Crossfit</Link>
-            <Link to="/programs">1-on-1 Personal Coaching</Link>
-            <Link to="/programs">Mobility & Yoga Flow</Link>
+            <Link to="/programs?program=strength">Strength & Power</Link>
+            <Link to="/programs?program=hiit">HIIT Conditioning</Link>
+            <Link to="/programs?program=functional">Functional Crossfit</Link>
+            <Link to="/programs?program=pt">1-on-1 Personal Coaching</Link>
+            <Link to="/programs?program=mobility">Mobility & Yoga Flow</Link>
           </div>
 
           {/* Col 3: Studio & Amenities */}
@@ -136,7 +136,7 @@ export function PublicFooter() {
                 </button>
               </div>
               <p className="footer-address">
-                <MapPin size={13} color="var(--lime)" /> Race Course Road, Coimbatore – 641018
+                <MapPin size={13} color="var(--lime)" /> MSC COMPLEX, Dharmapuri Main Rd, Teacher's Colony, Kottamettupatti, Tamil Nadu 636455
               </p>
             </div>
           </div>
@@ -145,7 +145,7 @@ export function PublicFooter() {
         {/* Footer Bottom Bar */}
         <div className="studio-footer-bottom">
           <small>© 2026 VINO FITNESS STUDIO. All rights reserved.</small>
-          <a href="https://bitbytetech.org"> <span className="studio-footer-motto">
+          <a href="https://bitbytetech.org" target="_blank" rel="noopener noreferrer"> <span className="studio-footer-motto">
             <small>  Designed, Developed, Hosted and Maintained by</small> Bit Byte Technologies
           </span></a>
           <div className="studio-footer-legal">

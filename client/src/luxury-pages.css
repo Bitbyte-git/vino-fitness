@@ -261,9 +261,18 @@
   text-decoration: none;
 }
 
+.luxury-glass-card:hover .luxury-btn-ghost,
 .luxury-btn-ghost:hover {
-  background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.18);
+  background: #deff34 !important;
+  color: #000000 !important;
+  border-color: #deff34 !important;
+  box-shadow: 0 4px 18px rgba(222, 255, 52, 0.35) !important;
+  font-weight: 600;
+}
+
+.luxury-glass-card:hover .luxury-btn-ghost svg,
+.luxury-btn-ghost:hover svg {
+  color: #000000 !important;
 }
 
 /* Spotlight Card (Apple Pro Banner) */

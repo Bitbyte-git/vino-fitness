@@ -82,13 +82,13 @@ export default function Login() {
       </div>
 
       {/* Luxury Frosted Glass Login Card */}
-      <div 
-        className="luxury-glass-card" 
-        style={{ 
-          width: '100%', 
-          maxWidth: '440px', 
-          padding: '40px 32px', 
-          position: 'relative', 
+      <div
+        className="luxury-glass-card"
+        style={{
+          width: '100%',
+          maxWidth: '440px',
+          padding: '40px 32px',
+          position: 'relative',
           zIndex: 2,
           boxShadow: '0 24px 60px rgba(0,0,0,0.7)'
         }}
@@ -110,7 +110,7 @@ export default function Login() {
         )}
 
         {/* Minimalist Segmented Role Control */}
-        <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '22px', overflowX: 'auto' }}>
+        {/* <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.03)', padding: '4px', borderRadius: '30px', border: '1px solid rgba(255,255,255,0.06)', marginBottom: '22px', overflowX: 'auto' }}>
           {[
             { id: 'admin', label: 'Admin' },
             { id: 'reception', label: 'Staff' },
@@ -139,7 +139,7 @@ export default function Login() {
               {r.label}
             </button>
           ))}
-        </div>
+        </div> */}
 
         <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -149,7 +149,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              placeholder="e.g. admin@pulsefit.com"
+              placeholder="e.g. vinofitness@gmail.com"
               style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: '12px', padding: '12px 14px', color: '#ffffff', fontSize: '13px', outline: 'none' }}
             />
           </div>

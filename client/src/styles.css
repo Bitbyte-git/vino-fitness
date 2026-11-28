@@ -4197,16 +4197,82 @@ tbody tr.selected td {
   color: var(--lime) !important;
   border: 0;
   background: none;
-  padding: 8px 0 0;
+  padding: 6px 0 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 9px !important;
-  font-weight: 700
+  gap: 6px;
+  font-size: 19.5px !important;
+  font-weight: 700;
+  text-decoration: none;
 }
 
 .schedule-link svg {
-  width: 13px
+  width: 12px;
+  height: 12px;
+}
+
+/* Today's Sessions Hero Card - Balanced Proportions (-30%) */
+.landing .float-card.class-card,
+.float-card.class-card {
+  width: 198px !important;
+  padding: 12px 14px 10px !important;
+  gap: 6px !important;
+}
+
+.landing .float-card.class-card>small,
+.float-card.class-card>small {
+  font-size: 10px !important;
+  font-weight: 600 !important;
+  color: #9ba58f !important;
+  letter-spacing: 0.02em !important;
+  margin-bottom: 2px !important;
+  display: block !important;
+}
+
+.landing .float-card.class-card .class-row,
+.float-card.class-card .class-row {
+  grid-template-columns: 26px 1fr !important;
+  gap: 8px !important;
+  padding: 3px 5px !important;
+  border-radius: 6px !important;
+  margin: 1px 0 !important;
+}
+
+.landing .float-card.class-card .class-row>svg,
+.float-card.class-card .class-row>svg {
+  width: 26px !important;
+  height: 26px !important;
+  padding: 5px !important;
+  border-radius: 5px !important;
+}
+
+.landing .float-card.class-card .class-row b,
+.float-card.class-card .class-row b {
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1.25 !important;
+  color: #ffffff !important;
+}
+
+.landing .float-card.class-card .class-row small,
+.float-card.class-card .class-row small {
+  font-size: 9px !important;
+  margin-top: 1px !important;
+  color: #a5ada0 !important;
+  display: block !important;
+}
+
+.landing .float-card.class-card .schedule-link,
+.float-card.class-card .schedule-link {
+  font-size: 9.5px !important;
+  padding-top: 6px !important;
+  gap: 6px !important;
+}
+
+.landing .float-card.class-card .schedule-link svg,
+.float-card.class-card .schedule-link svg {
+  width: 12px !important;
+  height: 12px !important;
 }
 
 .landing .float-card:focus-visible {
@@ -4407,34 +4473,66 @@ tbody tr.selected td {
 }
 
 /* Interactive neon pricing cards */
-.landing .plans article {
+.landing .plans article,
+.plans article {
   transition: transform .28s ease, border-color .28s ease, box-shadow .28s ease, background .28s ease;
 }
 
 .landing .plans article:hover,
-.landing .plans article:focus-within {
+.landing .plans article:focus-within,
+.plans article:hover,
+.plans article:focus-within {
   z-index: 2;
   transform: translateY(-8px);
-  border-color: var(--lime);
+  border-color: #deff34 !important;
   background: linear-gradient(150deg, rgba(29, 35, 22, .98), rgba(13, 16, 12, .98));
-  box-shadow: 0 16px 38px rgba(0, 0, 0, .48), 0 0 0 1px rgba(201, 255, 24, .18), 0 0 28px rgba(201, 255, 24, .13);
+  box-shadow: 0 16px 38px rgba(0, 0, 0, .48), 0 0 0 1px rgba(222, 255, 52, .18), 0 0 28px rgba(222, 255, 52, .13);
 }
 
-.landing .plans article button {
+.landing .plans article button,
+.landing .plans article .outline-btn,
+.plans article button,
+.plans article .outline-btn {
   transition: background .25s ease, color .25s ease, border-color .25s ease, box-shadow .25s ease, transform .25s ease;
 }
 
 .landing .plans article:hover button,
-.landing .plans article:focus-within button {
-  color: #090b09;
-  background: var(--lime);
-  border-color: var(--lime);
-  box-shadow: 0 0 22px rgba(201, 255, 24, .25);
+.landing .plans article:focus-within button,
+.landing .plans article:hover .outline-btn,
+.landing .plans article:focus-within .outline-btn,
+.landing .plans article button:hover,
+.landing .plans article .outline-btn:hover,
+.plans article:hover button,
+.plans article:focus-within button,
+.plans article:hover .outline-btn,
+.plans article:focus-within .outline-btn,
+.plans article button:hover,
+.plans article .outline-btn:hover {
+  color: #0b0e0c !important;
+  background: #deff34 !important;
+  border-color: #deff34 !important;
+  box-shadow: 0 4px 22px rgba(222, 255, 52, .35) !important;
 }
 
-.landing .plans article button:hover {
+.landing .plans article:hover button svg,
+.landing .plans article:focus-within button svg,
+.landing .plans article:hover .outline-btn svg,
+.landing .plans article:focus-within .outline-btn svg,
+.landing .plans article button:hover svg,
+.landing .plans article .outline-btn:hover svg,
+.plans article:hover button svg,
+.plans article:focus-within button svg,
+.plans article:hover .outline-btn svg,
+.plans article:focus-within .outline-btn svg,
+.plans article button:hover svg,
+.plans article .outline-btn:hover svg {
+  color: #0b0e0c !important;
+}
+
+.landing .plans article button:hover,
+.plans article button:hover {
   transform: translateY(-2px);
-  filter: brightness(1.06)
+  filter: brightness(1.06);
 }
 
 @media(prefers-reduced-motion:reduce) {
@@ -7069,8 +7167,8 @@ tbody tr.selected td {
   transition: .16s;
 }
 
-.operation-field > input,
-.operation-field > select {
+.operation-field>input,
+.operation-field>select {
   min-height: 44px;
   padding: 10px 14px;
   line-height: 1.4;
@@ -11282,25 +11380,25 @@ svg.icon-danger {
     padding: 16px 14px calc(86px + env(safe-area-inset-bottom, 0px));
   }
 
-  .member-shell .workspace > header {
+  .member-shell .workspace>header {
     flex-wrap: wrap;
     gap: 12px;
     margin-bottom: 18px;
   }
 
-  .member-shell .workspace > header .top-actions {
+  .member-shell .workspace>header .top-actions {
     width: 100%;
     display: flex;
     gap: 8px;
     flex-wrap: wrap;
   }
 
-  .member-shell .workspace > header .top-actions label {
+  .member-shell .workspace>header .top-actions label {
     flex: 1 1 180px;
     min-width: 0;
   }
 
-  .member-shell .workspace > header .top-actions .lime-btn {
+  .member-shell .workspace>header .top-actions .lime-btn {
     padding: 10px 14px;
     font-size: 13px;
     white-space: nowrap;
@@ -11737,6 +11835,7 @@ svg.icon-danger {
 
 /* Mobile responsive handling */
 @media (max-width: 860px) {
+
   .member-shell .table-card table,
   .member-shell .membership-table-card table,
   .member-shell .payments-table-card table,
@@ -11744,6 +11843,7 @@ svg.icon-danger {
     table-layout: auto !important;
     min-width: 720px !important;
   }
+
   .member-shell .table-card th,
   .member-shell .table-card td {
     padding: 10px 10px !important;
@@ -12378,6 +12478,7 @@ svg.icon-danger {
 
 /* Mobile responsive handling for trainer */
 @media (max-width: 860px) {
+
   .trainer-shell .table-card table,
   .trainer-shell .members-table,
   .trainer-shell .availability-table,
@@ -12385,6 +12486,7 @@ svg.icon-danger {
     table-layout: auto !important;
     min-width: 680px !important;
   }
+
   .trainer-shell .table-card th,
   .trainer-shell .table-card td {
     padding: 10px 10px !important;
@@ -12513,9 +12615,20 @@ svg.icon-danger {
 }
 
 @keyframes pulseLive {
-  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
-  70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
-  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 8px rgba(34, 197, 94, 0);
+  }
+
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
 }
 
 .trainer-live-indicator.idle {
@@ -12572,10 +12685,25 @@ svg.icon-danger {
   flex-shrink: 0;
 }
 
-.kpi-icon-wrap.lime { background: rgba(201, 255, 24, 0.12); color: var(--lime); }
-.kpi-icon-wrap.emerald { background: rgba(16, 185, 129, 0.12); color: #34d399; }
-.kpi-icon-wrap.orange { background: rgba(249, 115, 22, 0.12); color: #fb923c; }
-.kpi-icon-wrap.sky { background: rgba(14, 165, 233, 0.12); color: #38bdf8; }
+.kpi-icon-wrap.lime {
+  background: rgba(201, 255, 24, 0.12);
+  color: var(--lime);
+}
+
+.kpi-icon-wrap.emerald {
+  background: rgba(16, 185, 129, 0.12);
+  color: #34d399;
+}
+
+.kpi-icon-wrap.orange {
+  background: rgba(249, 115, 22, 0.12);
+  color: #fb923c;
+}
+
+.kpi-icon-wrap.sky {
+  background: rgba(14, 165, 233, 0.12);
+  color: #38bdf8;
+}
 
 .kpi-body {
   display: flex;
@@ -12859,9 +12987,11 @@ svg.icon-danger {
   .trainer-kpi-grid {
     grid-template-columns: repeat(2, 1fr);
   }
+
   .trainer-analytics-grid {
     grid-template-columns: 1fr;
   }
+
   .trainer-lower-grid {
     grid-template-columns: 1fr;
   }
@@ -12872,17 +13002,21 @@ svg.icon-danger {
     flex-direction: column;
     align-items: flex-start;
   }
+
   .trainer-hero-actions-cluster {
     width: 100%;
     align-items: flex-start;
   }
+
   .trainer-cta-buttons {
     width: 100%;
   }
+
   .trainer-cta-buttons button {
     flex: 1;
     justify-content: center;
   }
+
   .trainer-kpi-grid {
     grid-template-columns: 1fr;
   }
@@ -13565,25 +13699,32 @@ svg.icon-danger {
     flex-direction: column;
     align-items: flex-start;
   }
+
   .profile-hero-actions {
     width: 100%;
   }
+
   .profile-hero-actions button {
     flex: 1;
     justify-content: center;
   }
+
   .profile-metrics-grid {
     grid-template-columns: 1fr;
   }
+
   .profile-info-sections {
     grid-template-columns: 1fr;
   }
+
   .slot-timings-grid {
     grid-template-columns: 1fr;
   }
+
   .slot-details-grid {
     grid-template-columns: 1fr;
   }
+
   .coach-empty-card,
   .slot-empty-card,
   .notifications-empty-card {
@@ -13605,16 +13746,19 @@ svg.icon-danger {
   white-space: nowrap;
   vertical-align: middle;
 }
+
 .role-badge-trainer {
   background: rgba(245, 158, 11, 0.15);
   color: #f59e0b;
   border: 1px solid rgba(245, 158, 11, 0.35);
 }
+
 .role-badge-staff {
   background: rgba(56, 189, 248, 0.15);
   color: #38bdf8;
   border: 1px solid rgba(56, 189, 248, 0.35);
 }
+
 .role-badge-member {
   background: rgba(52, 211, 153, 0.12);
   color: #34d399;
@@ -13665,12 +13809,14 @@ svg.icon-danger {
   justify-content: center;
   overflow: hidden;
 }
+
 .fp-modal-avatar img {
   width: 100%;
   height: 100%;
   object-fit: cover;
   border-radius: 11px;
 }
+
 .fp-modal-avatar span {
   font-size: 15px;
   font-weight: 800;
@@ -13680,27 +13826,37 @@ svg.icon-danger {
   align-items: center;
   justify-content: center;
 }
+
 .fp-modal-avatar.trainer-avatar {
   background: linear-gradient(135deg, rgba(245, 158, 11, 0.16), rgba(245, 158, 11, 0.04));
   border-color: rgba(245, 158, 11, 0.25);
 }
-.fp-modal-avatar.trainer-avatar span { color: #f59e0b; }
+
+.fp-modal-avatar.trainer-avatar span {
+  color: #f59e0b;
+}
+
 .fp-modal-avatar.staff-avatar {
   background: linear-gradient(135deg, rgba(56, 189, 248, 0.16), rgba(56, 189, 248, 0.04));
   border-color: rgba(56, 189, 248, 0.25);
 }
-.fp-modal-avatar.staff-avatar span { color: #38bdf8; }
+
+.fp-modal-avatar.staff-avatar span {
+  color: #38bdf8;
+}
 
 .fp-modal-person-info {
   flex: 1;
   min-width: 0;
 }
+
 .fp-modal-tag-row {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
 }
+
 .fp-modal-person-name {
   font-family: 'Bebas Neue', 'Arial Narrow', sans-serif;
   font-size: 22px;
@@ -13723,17 +13879,20 @@ svg.icon-danger {
   border: 1px solid rgba(201, 255, 24, 0.1);
   border-radius: 10px;
 }
+
 .fp-modal-title-icon {
   color: var(--lime, #c9ff18);
   margin-top: 2px;
   flex-shrink: 0;
 }
+
 .fp-modal-title {
   font-size: 15px;
   font-weight: 700;
   color: var(--white, #f7f8f4);
   margin: 0;
 }
+
 .fp-modal-subtitle {
   font-size: 12px;
   color: var(--muted, #9aa096);
@@ -13763,14 +13922,17 @@ svg.icon-danger {
   border-radius: 10px;
   border: 1px solid;
 }
+
 .fp-modal-status-card.enrolled {
   background: rgba(201, 255, 24, 0.05);
   border-color: rgba(201, 255, 24, 0.15);
 }
+
 .fp-modal-status-card.not-enrolled {
   background: rgba(154, 160, 150, 0.05);
   border-color: rgba(154, 160, 150, 0.15);
 }
+
 .fp-status-icon-row {
   display: flex;
   align-items: center;
@@ -13778,22 +13940,27 @@ svg.icon-danger {
   font-size: 13px;
   margin-bottom: 6px;
 }
+
 .fp-modal-status-card.enrolled .fp-status-icon-row {
   color: var(--lime, #c9ff18);
 }
+
 .fp-modal-status-card.not-enrolled .fp-status-icon-row {
   color: var(--muted, #9aa096);
 }
+
 .fp-status-meta {
   font-size: 12px;
   color: var(--muted, #9aa096);
   margin: 0;
   line-height: 1.6;
 }
+
 .fp-status-sep {
   margin: 0 6px;
   opacity: 0.4;
 }
+
 .fp-status-meta strong {
   color: var(--white, #f7f8f4);
 }
@@ -13804,12 +13971,14 @@ svg.icon-danger {
   flex-direction: column;
   gap: 6px;
 }
+
 .fp-field-label {
   font-size: 10px;
   font-weight: 800;
   letter-spacing: 0.12em;
   color: var(--muted, #9aa096);
 }
+
 .fp-field-select {
   display: block;
   width: 100%;
@@ -13834,11 +14003,13 @@ svg.icon-danger {
   background-size: 16px;
   transition: border-color 0.15s, box-shadow 0.15s;
 }
+
 .fp-field-select option {
   background: #171a17;
   color: #f7f8f4;
   padding: 8px 12px;
 }
+
 .fp-field-select:focus {
   border-color: var(--lime, #c9ff18);
   outline: none;
@@ -13852,6 +14023,7 @@ svg.icon-danger {
   gap: 10px;
   flex-wrap: wrap;
 }
+
 .fp-capture-btn {
   display: inline-flex;
   align-items: center;
@@ -13861,6 +14033,7 @@ svg.icon-danger {
   font-weight: 700 !important;
   border-radius: 10px !important;
 }
+
 .fp-clear-btn {
   font-size: 12px !important;
   padding: 8px 14px !important;
@@ -13876,6 +14049,7 @@ svg.icon-danger {
   background: var(--panel2, #171a17);
   border: 1px solid var(--line, #2a2f28);
 }
+
 .fp-preview-image-wrap {
   flex-shrink: 0;
   width: 120px;
@@ -13883,6 +14057,7 @@ svg.icon-danger {
   align-items: center;
   justify-content: center;
 }
+
 .fp-preview-image-wrap img {
   max-width: 100%;
   max-height: 150px;
@@ -13890,6 +14065,7 @@ svg.icon-danger {
   border: 1px solid var(--line, #2a2f28);
   background: var(--ink, #080a09);
 }
+
 .fp-preview-details {
   flex: 1;
   display: flex;
@@ -13897,11 +14073,13 @@ svg.icon-danger {
   gap: 8px;
   justify-content: center;
 }
+
 .fp-preview-quality {
   display: flex;
   align-items: baseline;
   gap: 8px;
 }
+
 .fp-quality-label {
   font-size: 11px;
   font-weight: 700;
@@ -13909,6 +14087,7 @@ svg.icon-danger {
   text-transform: uppercase;
   letter-spacing: 0.08em;
 }
+
 .fp-quality-value {
   font-size: 24px;
   font-weight: 800;
@@ -13916,17 +14095,20 @@ svg.icon-danger {
   font-family: 'Bebas Neue', 'Arial Narrow', sans-serif;
   letter-spacing: 0.5px;
 }
+
 .fp-quality-value small {
   font-size: 13px;
   color: var(--muted, #9aa096);
   font-family: 'Inter', Arial, sans-serif;
   font-weight: 600;
 }
+
 .fp-preview-device {
   font-size: 11px;
   color: var(--muted, #9aa096);
   margin: 0;
 }
+
 .fp-save-btn {
   display: inline-flex;
   align-items: center;
@@ -13944,20 +14126,24 @@ svg.icon-danger {
   padding-top: 14px;
   border-top: 1px solid rgba(239, 68, 68, 0.15);
 }
+
 .fp-delete-trigger {
   font-size: 12px !important;
   padding: 8px 16px !important;
 }
+
 .fp-delete-confirm {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
+
 .fp-delete-warning {
   font-size: 13px;
   color: #f87171;
   font-weight: 600;
 }
+
 .fp-delete-btns {
   display: flex;
   align-items: center;
@@ -13975,42 +14161,54 @@ svg.icon-danger {
   font-size: 12px;
   line-height: 1.5;
 }
+
 .fp-modal-alert.success {
   background: rgba(201, 255, 24, 0.07);
   border: 1px solid rgba(201, 255, 24, 0.18);
   color: var(--lime, #c9ff18);
 }
+
 .fp-modal-alert.error {
   background: rgba(239, 68, 68, 0.08);
   border: 1px solid rgba(239, 68, 68, 0.2);
   color: #f87171;
 }
+
 .fp-modal-alert.warning {
   background: rgba(245, 158, 11, 0.08);
   border: 1px solid rgba(245, 158, 11, 0.2);
   color: #f59e0b;
 }
-.fp-modal-alert svg { flex-shrink: 0; margin-top: 1px; }
+
+.fp-modal-alert svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
 
 /* Responsive */
 @media (max-width: 560px) {
   .fp-modal-card {
     border-radius: 14px;
   }
+
   .fp-modal-header {
     padding: 20px 18px 16px;
   }
+
   .fp-modal-body {
     padding: 18px;
   }
+
   .fp-modal-preview-card {
     flex-direction: column;
     align-items: center;
     text-align: center;
   }
+
   .fp-preview-details {
     align-items: center;
   }
+
   .fp-modal-person-name {
     font-size: 19px;
   }
@@ -14044,6 +14242,7 @@ svg.icon-danger {
 }
 
 @media (min-width: 900px) {
+
   .admin-shell:not(.reception-shell) .table-scroll,
   .admin-table-card:not(.reception-table-card) .table-scroll {
     overflow-x: hidden !important;
@@ -14206,32 +14405,38 @@ svg.icon-danger {
   text-align: left !important;
   padding-left: 20px !important;
 }
+
 .trainers-table.admin-table th.col-gender,
 .trainers-table.admin-table td.col-gender {
   width: 10% !important;
   text-align: center !important;
   text-transform: capitalize !important;
 }
+
 .trainers-table.admin-table th.col-specialization,
 .trainers-table.admin-table td.col-specialization {
   width: 22% !important;
   text-align: center !important;
 }
+
 .trainers-table.admin-table th.col-experience,
 .trainers-table.admin-table td.col-experience {
   width: 11% !important;
   text-align: center !important;
 }
+
 .trainers-table.admin-table th.col-convenientTimings,
 .trainers-table.admin-table td.col-convenientTimings {
   width: 13% !important;
   text-align: center !important;
 }
+
 .trainers-table.admin-table th.col-status,
 .trainers-table.admin-table td.col-status {
   width: 10% !important;
   text-align: center !important;
 }
+
 .trainers-table.admin-table th.col-actions,
 .trainers-table.admin-table td.col-actions {
   width: 12% !important;
@@ -14248,26 +14453,31 @@ svg.icon-danger {
   text-align: left !important;
   padding-left: 20px !important;
 }
+
 .members-table.admin-table th.col-memberId,
 .members-table.admin-table td.col-memberId {
   width: 14% !important;
   text-align: center !important;
 }
+
 .members-table.admin-table th.col-mobileNumber,
 .members-table.admin-table td.col-mobileNumber {
   width: 16% !important;
   text-align: center !important;
 }
+
 .members-table.admin-table th.col-registrationStatus,
 .members-table.admin-table td.col-registrationStatus {
   width: 14% !important;
   text-align: center !important;
 }
+
 .members-table.admin-table th.col-membershipStatus,
 .members-table.admin-table td.col-membershipStatus {
   width: 14% !important;
   text-align: center !important;
 }
+
 .members-table.admin-table th.col-actions,
 .members-table.admin-table td.col-actions {
   width: 16% !important;
@@ -14285,21 +14495,25 @@ svg.icon-danger {
   padding-left: 20px !important;
   font-weight: 700 !important;
 }
+
 .plans-table.admin-table th.col-duration,
 .plans-table.admin-table td.col-duration {
   width: 18% !important;
   text-align: center !important;
 }
+
 .plans-table.admin-table th.col-price,
 .plans-table.admin-table td.col-price {
   width: 18% !important;
   text-align: center !important;
 }
+
 .plans-table.admin-table th.col-status,
 .plans-table.admin-table td.col-status {
   width: 16% !important;
   text-align: center !important;
 }
+
 .plans-table.admin-table th.col-actions,
 .plans-table.admin-table td.col-actions {
   width: 18% !important;
@@ -14316,36 +14530,43 @@ svg.icon-danger {
   text-align: left !important;
   padding-left: 20px !important;
 }
+
 .memberships-table.admin-table th.col-membershipPlan,
 .memberships-table.admin-table td.col-membershipPlan {
   width: 17% !important;
   text-align: center !important;
 }
+
 .memberships-table.admin-table th.col-startDate,
 .memberships-table.admin-table td.col-startDate {
   width: 10% !important;
   text-align: center !important;
 }
+
 .memberships-table.admin-table th.col-endDate,
 .memberships-table.admin-table td.col-endDate {
   width: 10% !important;
   text-align: center !important;
 }
+
 .memberships-table.admin-table th.col-pendingAmount,
 .memberships-table.admin-table td.col-pendingAmount {
   width: 11% !important;
   text-align: center !important;
 }
+
 .memberships-table.admin-table th.col-status,
 .memberships-table.admin-table td.col-status {
   width: 10% !important;
   text-align: center !important;
 }
+
 .memberships-table.admin-table th.col-paymentStatus,
 .memberships-table.admin-table td.col-paymentStatus {
   width: 10% !important;
   text-align: center !important;
 }
+
 .memberships-table.admin-table th.col-actions,
 .memberships-table.admin-table td.col-actions {
   width: 12% !important;
@@ -14362,36 +14583,43 @@ svg.icon-danger {
   text-align: left !important;
   padding-left: 20px !important;
 }
+
 .attendance-table.admin-table th.col-sessionName,
 .attendance-table.admin-table td.col-sessionName {
   width: 10% !important;
   text-align: center !important;
 }
+
 .attendance-table.admin-table th.col-checkInTime,
 .attendance-table.admin-table td.col-checkInTime {
   width: 11% !important;
   text-align: center !important;
 }
+
 .attendance-table.admin-table th.col-checkOutTime,
 .attendance-table.admin-table td.col-checkOutTime {
   width: 11% !important;
   text-align: center !important;
 }
+
 .attendance-table.admin-table th.col-duration,
 .attendance-table.admin-table td.col-duration {
   width: 10% !important;
   text-align: center !important;
 }
+
 .attendance-table.admin-table th.col-attendanceStatus,
 .attendance-table.admin-table td.col-attendanceStatus {
   width: 14% !important;
   text-align: center !important;
 }
+
 .attendance-table.admin-table th.col-deviceId,
 .attendance-table.admin-table td.col-deviceId {
   width: 13% !important;
   text-align: center !important;
 }
+
 .attendance-table.admin-table th.col-actions,
 .attendance-table.admin-table td.col-actions {
   width: 13% !important;
@@ -14408,36 +14636,43 @@ svg.icon-danger {
   text-align: left !important;
   padding-left: 20px !important;
 }
+
 .payments-table.admin-table th.col-transactionId,
 .payments-table.admin-table td.col-transactionId {
   width: 16% !important;
   text-align: center !important;
 }
+
 .payments-table.admin-table th.col-amount,
 .payments-table.admin-table td.col-amount {
   width: 11% !important;
   text-align: center !important;
 }
+
 .payments-table.admin-table th.col-paymentMethod,
 .payments-table.admin-table td.col-paymentMethod {
   width: 11% !important;
   text-align: center !important;
 }
+
 .payments-table.admin-table th.col-paymentStatus,
 .payments-table.admin-table td.col-paymentStatus {
   width: 11% !important;
   text-align: center !important;
 }
+
 .payments-table.admin-table th.col-whatsappStatus,
 .payments-table.admin-table td.col-whatsappStatus {
   width: 10% !important;
   text-align: center !important;
 }
+
 .payments-table.admin-table th.col-paymentDate,
 .payments-table.admin-table td.col-paymentDate {
   width: 11% !important;
   text-align: center !important;
 }
+
 .payments-table.admin-table th.col-actions,
 .payments-table.admin-table td.col-actions {
   width: 12% !important;
@@ -14454,26 +14689,31 @@ svg.icon-danger {
   text-align: left !important;
   padding-left: 20px !important;
 }
+
 .allocations-table.admin-table th.col-trainer,
 .allocations-table.admin-table td.col-trainer {
   width: 24% !important;
   text-align: center !important;
 }
+
 .allocations-table.admin-table th.col-startDate,
 .allocations-table.admin-table td.col-startDate {
   width: 13% !important;
   text-align: center !important;
 }
+
 .allocations-table.admin-table th.col-endDate,
 .allocations-table.admin-table td.col-endDate {
   width: 13% !important;
   text-align: center !important;
 }
+
 .allocations-table.admin-table th.col-status,
 .allocations-table.admin-table td.col-status {
   width: 12% !important;
   text-align: center !important;
 }
+
 .allocations-table.admin-table th.col-actions,
 .allocations-table.admin-table td.col-actions {
   width: 14% !important;
@@ -14491,31 +14731,37 @@ svg.icon-danger {
   padding-left: 20px !important;
   font-weight: 700 !important;
 }
+
 .slots-table.admin-table th.col-startTime,
 .slots-table.admin-table td.col-startTime {
   width: 12% !important;
   text-align: center !important;
 }
+
 .slots-table.admin-table th.col-endTime,
 .slots-table.admin-table td.col-endTime {
   width: 12% !important;
   text-align: center !important;
 }
+
 .slots-table.admin-table th.col-currentCapacity,
 .slots-table.admin-table td.col-currentCapacity {
   width: 13% !important;
   text-align: center !important;
 }
+
 .slots-table.admin-table th.col-maxCapacity,
 .slots-table.admin-table td.col-maxCapacity {
   width: 13% !important;
   text-align: center !important;
 }
+
 .slots-table.admin-table th.col-status,
 .slots-table.admin-table td.col-status {
   width: 12% !important;
   text-align: center !important;
 }
+
 .slots-table.admin-table th.col-actions,
 .slots-table.admin-table td.col-actions {
   width: 16% !important;
@@ -14532,26 +14778,31 @@ svg.icon-danger {
   text-align: left !important;
   padding-left: 20px !important;
 }
+
 .slotAllocations-table.admin-table th.col-timeSlot,
 .slotAllocations-table.admin-table td.col-timeSlot {
   width: 23% !important;
   text-align: center !important;
 }
+
 .slotAllocations-table.admin-table th.col-startDate,
 .slotAllocations-table.admin-table td.col-startDate {
   width: 13% !important;
   text-align: center !important;
 }
+
 .slotAllocations-table.admin-table th.col-endDate,
 .slotAllocations-table.admin-table td.col-endDate {
   width: 13% !important;
   text-align: center !important;
 }
+
 .slotAllocations-table.admin-table th.col-status,
 .slotAllocations-table.admin-table td.col-status {
   width: 12% !important;
   text-align: center !important;
 }
+
 .slotAllocations-table.admin-table th.col-actions,
 .slotAllocations-table.admin-table td.col-actions {
   width: 14% !important;
@@ -14570,21 +14821,25 @@ svg.icon-danger {
   font-weight: 700 !important;
   text-transform: uppercase !important;
 }
+
 .hours-table.admin-table th.col-isOpen,
 .hours-table.admin-table td.col-isOpen {
   width: 18% !important;
   text-align: center !important;
 }
+
 .hours-table.admin-table th.col-openTime,
 .hours-table.admin-table td.col-openTime {
   width: 22% !important;
   text-align: center !important;
 }
+
 .hours-table.admin-table th.col-closeTime,
 .hours-table.admin-table td.col-closeTime {
   width: 22% !important;
   text-align: center !important;
 }
+
 .hours-table.admin-table th.col-actions,
 .hours-table.admin-table td.col-actions {
   width: 16% !important;
@@ -14601,41 +14856,49 @@ svg.icon-danger {
   text-align: left !important;
   padding-left: 20px !important;
 }
+
 .availability-table.admin-table th.col-dayOfWeek,
 .availability-table.admin-table td.col-dayOfWeek {
   width: 10% !important;
   text-align: center !important;
 }
+
 .availability-table.admin-table th.col-startTime,
 .availability-table.admin-table td.col-startTime {
   width: 10% !important;
   text-align: center !important;
 }
+
 .availability-table.admin-table th.col-endTime,
 .availability-table.admin-table td.col-endTime {
   width: 10% !important;
   text-align: center !important;
 }
+
 .availability-table.admin-table th.col-breakStartTime,
 .availability-table.admin-table td.col-breakStartTime {
   width: 10% !important;
   text-align: center !important;
 }
+
 .availability-table.admin-table th.col-breakEndTime,
 .availability-table.admin-table td.col-breakEndTime {
   width: 10% !important;
   text-align: center !important;
 }
+
 .availability-table.admin-table th.col-maxClients,
 .availability-table.admin-table td.col-maxClients {
   width: 10% !important;
   text-align: center !important;
 }
+
 .availability-table.admin-table th.col-isActive,
 .availability-table.admin-table td.col-isActive {
   width: 10% !important;
   text-align: center !important;
 }
+
 .availability-table.admin-table th.col-actions,
 .availability-table.admin-table td.col-actions {
   width: 13% !important;
@@ -14653,22 +14916,26 @@ svg.icon-danger {
   padding-left: 20px !important;
   font-weight: 600 !important;
 }
+
 .users-table.admin-table th.col-role,
 .users-table.admin-table td.col-role {
   width: 18% !important;
   text-align: center !important;
   text-transform: uppercase !important;
 }
+
 .users-table.admin-table th.col-isActive,
 .users-table.admin-table td.col-isActive {
   width: 16% !important;
   text-align: center !important;
 }
+
 .users-table.admin-table th.col-lastLogin,
 .users-table.admin-table td.col-lastLogin {
   width: 18% !important;
   text-align: center !important;
 }
+
 .users-table.admin-table th.col-actions,
 .users-table.admin-table td.col-actions {
   width: 18% !important;
@@ -14685,11 +14952,13 @@ svg.icon-danger {
   text-align: left !important;
   padding-left: 20px !important;
 }
+
 .notifications-table.admin-table th.col-member,
 .notifications-table.admin-table td.col-member {
   width: 18% !important;
   text-align: center !important;
 }
+
 .notifications-table.admin-table th.col-message,
 .notifications-table.admin-table td.col-message {
   width: 28% !important;
@@ -14697,16 +14966,19 @@ svg.icon-danger {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
 }
+
 .notifications-table.admin-table th.col-isRead,
 .notifications-table.admin-table td.col-isRead {
   width: 11% !important;
   text-align: center !important;
 }
+
 .notifications-table.admin-table th.col-createdAt,
 .notifications-table.admin-table td.col-createdAt {
   width: 12% !important;
   text-align: center !important;
 }
+
 .notifications-table.admin-table th.col-actions,
 .notifications-table.admin-table td.col-actions {
   width: 11% !important;
@@ -14724,22 +14996,26 @@ svg.icon-danger {
   padding-left: 20px !important;
   font-family: monospace !important;
 }
+
 .settings-table.admin-table th.col-value,
 .settings-table.admin-table td.col-value {
   width: 20% !important;
   text-align: center !important;
 }
+
 .settings-table.admin-table th.col-category,
 .settings-table.admin-table td.col-category {
   width: 18% !important;
   text-align: center !important;
   text-transform: uppercase !important;
 }
+
 .settings-table.admin-table th.col-description,
 .settings-table.admin-table td.col-description {
   width: 24% !important;
   text-align: left !important;
 }
+
 .settings-table.admin-table th.col-actions,
 .settings-table.admin-table td.col-actions {
   width: 14% !important;
@@ -14756,16 +15032,19 @@ svg.icon-danger {
   text-align: left !important;
   padding-left: 20px !important;
 }
+
 .audit-table.admin-table th.col-action,
 .audit-table.admin-table td.col-action {
   width: 26% !important;
   text-align: center !important;
 }
+
 .audit-table.admin-table th.col-entityType,
 .audit-table.admin-table td.col-entityType {
   width: 22% !important;
   text-align: center !important;
 }
+
 .audit-table.admin-table th.col-timestamp,
 .audit-table.admin-table td.col-timestamp {
   width: 24% !important;
@@ -14781,6 +15060,7 @@ svg.icon-danger {
   text-align: left !important;
   padding-left: 20px !important;
 }
+
 .report-table-card .admin-table th:last-child,
 .report-table-card .admin-table td:last-child {
   text-align: right !important;
@@ -14789,12 +15069,14 @@ svg.icon-danger {
 
 /* Mobile responsive handling for admin tables */
 @media (max-width: 860px) {
+
   .admin-shell:not(.reception-shell) .table-card table,
   .admin-table-card:not(.reception-table-card) table,
   .admin-table {
     table-layout: auto !important;
     min-width: 680px !important;
   }
+
   .admin-shell:not(.reception-shell) .table-card th,
   .admin-shell:not(.reception-shell) .table-card td,
   .admin-table-card:not(.reception-table-card) th,

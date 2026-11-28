@@ -275,7 +275,7 @@ export default function Memberships() {
 
           {/* Minimalist Note Bar */}
           <div className="luxury-note-bar">
-            One-time admission fee: <strong>₹500 (Non-refundable)</strong> • Classes: <strong>Morning 5–10 AM</strong> & <strong>Evening 5–9 PM</strong>
+            One-time admission fee: <strong>₹500 (Non-refundable)</strong> • Classes: <strong>Morning 5 AM – 10 AM</strong> & <strong>Evening 5 PM – 9 PM</strong>
           </div>
         </div>
       </div>

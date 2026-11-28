@@ -53,7 +53,7 @@ export default function Facilities() {
 
           {/* Minimal Hero */}
           <div className="luxury-hero">
-            <span className="luxury-badge">Amenities</span>
+            <span className="luxury-badge">Amenities <i>In</i></span>
             <h1 className="luxury-title">
               The <span>Studio</span>.
             </h1>
