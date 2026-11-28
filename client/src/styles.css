@@ -14020,57 +14020,66 @@ svg.icon-danger {
 /* ==========================================================================
    ADMIN ROLE MASTER FIXED BALANCED TABLES & ALIGNMENT ACROSS ALL MODULES
    Guarantees 100% justified width, zero horizontal clipping, and equal gaps
+   Applied strictly to admin role only (.admin-shell:not(.reception-shell), .admin-table)
    ========================================================================== */
-.admin-shell .table-card,
-.admin-table-card {
+.admin-shell:not(.reception-shell) .table-card,
+.admin-table-card:not(.reception-table-card) {
   padding: 10px 16px 14px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   background: linear-gradient(180deg, #131712 0%, #0d100c 100%);
   box-shadow: 0 12px 28px rgba(0, 0, 0, 0.32);
   border-radius: 14px;
   overflow: hidden;
+  box-sizing: border-box;
+  width: 100%;
 }
 
-.admin-shell .table-scroll,
-.admin-table-card .table-scroll {
-  width: 100%;
+.admin-shell:not(.reception-shell) .table-scroll,
+.admin-table-card:not(.reception-table-card) .table-scroll {
+  width: 100% !important;
+  max-width: 100% !important;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
+  box-sizing: border-box;
 }
 
 @media (min-width: 900px) {
-  .admin-shell .table-scroll,
-  .admin-table-card .table-scroll {
-    overflow-x: auto !important;
+  .admin-shell:not(.reception-shell) .table-scroll,
+  .admin-table-card:not(.reception-table-card) .table-scroll {
+    overflow-x: hidden !important;
   }
 }
 
-.admin-shell .table-card table,
-.admin-table-card table,
+.admin-shell:not(.reception-shell) .table-card table,
+.admin-table-card:not(.reception-table-card) table,
 .admin-table {
   width: 100% !important;
-  min-width: 1100px !important;
+  min-width: 100% !important;
+  max-width: 100% !important;
   table-layout: fixed !important;
   border-collapse: separate !important;
   border-spacing: 0 !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
 }
 
-.admin-shell .table-card th,
-.admin-shell .table-card td,
-.admin-table-card th,
-.admin-table-card td,
+.admin-shell:not(.reception-shell) .table-card th,
+.admin-shell:not(.reception-shell) .table-card td,
+.admin-table-card:not(.reception-table-card) th,
+.admin-table-card:not(.reception-table-card) td,
 .admin-table th,
 .admin-table td {
-  padding: 13px 12px !important;
+  padding: 13px 10px !important;
   font-size: 12.5px !important;
   color: var(--white) !important;
   white-space: nowrap !important;
   border-bottom: 1px solid rgba(255, 255, 255, 0.06) !important;
   vertical-align: middle !important;
+  box-sizing: border-box !important;
 }
 
-.admin-shell .table-card th,
-.admin-table-card th,
+.admin-shell:not(.reception-shell) .table-card th,
+.admin-table-card:not(.reception-table-card) th,
 .admin-table th {
   font-size: 10.5px !important;
   font-weight: 700 !important;
@@ -14081,26 +14090,25 @@ svg.icon-danger {
   background: transparent !important;
 }
 
-.admin-shell .table-card tbody tr:hover td,
-.admin-table-card tbody tr:hover td,
+.admin-shell:not(.reception-shell) .table-card tbody tr:hover td,
+.admin-table-card:not(.reception-table-card) tbody tr:hover td,
 .admin-table tbody tr:hover td {
   background: rgba(201, 255, 24, 0.035) !important;
 }
 
-.attendance-table td .training-active-pill,
-.attendance-table td .studio-status-pill,
-.attendance-table td .gym-time-pill,
-.attendance-table td .terminal-device-pill {
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  margin: 0 auto !important;
-  white-space: nowrap !important;
-  position: static !important;
-  float: none !important;
+/* First Column Justification & Alignment in Admin tables */
+.admin-shell:not(.reception-shell) .table-card th:first-child,
+.admin-shell:not(.reception-shell) .table-card td:first-child,
+.admin-table-card:not(.reception-table-card) th:first-child,
+.admin-table-card:not(.reception-table-card) td:first-child,
+.admin-table th:first-child,
+.admin-table td:first-child {
+  text-align: left !important;
+  padding-left: 20px !important;
+  padding-right: 10px !important;
 }
 
-/* Center-aligned elements in Admin tables */
+/* Center-aligned badges & pills in Admin tables */
 .admin-table td .status,
 .admin-table td .member-id-capsule,
 .admin-table td .payment-due-capsule,
@@ -14115,66 +14123,120 @@ svg.icon-danger {
 .admin-table td .schedule-active-status-pill,
 .admin-table td .schedule-pending-status-pill,
 .admin-table td .attendee-role-badge,
-.admin-table td .luxury-session-pill {
+.admin-table td .luxury-session-pill,
+.admin-table td .training-active-pill,
+.admin-table td .studio-status-pill,
+.admin-table td .gym-time-pill,
+.admin-table td .terminal-device-pill {
   display: inline-flex !important;
   align-items: center !important;
   justify-content: center !important;
   margin: 0 auto !important;
+  white-space: nowrap !important;
+  position: static !important;
+  float: none !important;
 }
 
+/* Actions Column & Internal Action Buttons - Clean Right Justification */
+.admin-shell:not(.reception-shell) .table-card th.col-actions,
+.admin-shell:not(.reception-shell) .table-card td.col-actions,
+.admin-shell:not(.reception-shell) .table-card th:last-child,
+.admin-shell:not(.reception-shell) .table-card td:last-child,
+.admin-table-card:not(.reception-table-card) th.col-actions,
+.admin-table-card:not(.reception-table-card) td.col-actions,
+.admin-table-card:not(.reception-table-card) th:last-child,
+.admin-table-card:not(.reception-table-card) td:last-child,
 .admin-table th.col-actions,
 .admin-table td.col-actions {
-  text-align: center !important;
+  min-width: 0 !important;
+  max-width: none !important;
+  text-align: right !important;
+  padding-right: 20px !important;
+  padding-left: 6px !important;
 }
 
-.admin-table .col-actions .row-actions {
+.admin-shell:not(.reception-shell) .row-actions,
+.admin-table-card:not(.reception-table-card) .row-actions,
+.admin-table td.col-actions .row-actions {
   display: flex !important;
   align-items: center !important;
-  justify-content: center !important;
+  justify-content: flex-end !important;
+  min-width: 0 !important;
   width: 100% !important;
-  margin: 0 auto !important;
+  margin: 0 0 0 auto !important;
+  padding: 0 !important;
+  gap: 6px !important;
+}
+
+.admin-shell:not(.reception-shell) .action-dropdown,
+.admin-table-card:not(.reception-table-card) .action-dropdown,
+.admin-table .action-dropdown {
+  display: inline-flex !important;
+  justify-content: flex-end !important;
+}
+
+.admin-shell:not(.reception-shell) .action-dropdown-trigger,
+.admin-table-card:not(.reception-table-card) .action-dropdown-trigger,
+.admin-table .action-dropdown-trigger {
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.admin-shell:not(.reception-shell) .row-actions button,
+.admin-shell:not(.reception-shell) .row-actions .outline-btn,
+.admin-table-card:not(.reception-table-card) .row-actions button,
+.admin-table-card:not(.reception-table-card) .row-actions .outline-btn,
+.admin-table td.col-actions .row-actions button,
+.admin-table td.col-actions .row-actions .outline-btn {
+  white-space: nowrap !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-left: auto !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
    1. TRAINERS MODULE (7 Columns: Trainer, Gender, Specialization, Exp, Timings, Status, Actions)
    ───────────────────────────────────────────────────────────── */
-.trainers-table th.col-fullName,
-.trainers-table td.col-fullName {
-  width: 24% !important;
+.trainers-table.admin-table th.col-fullName,
+.trainers-table.admin-table td.col-fullName {
+  width: 22% !important;
   text-align: left !important;
   padding-left: 20px !important;
 }
-.trainers-table th.col-gender,
-.trainers-table td.col-gender {
+.trainers-table.admin-table th.col-gender,
+.trainers-table.admin-table td.col-gender {
   width: 10% !important;
   text-align: center !important;
   text-transform: capitalize !important;
 }
-.trainers-table th.col-specialization,
-.trainers-table td.col-specialization {
-  width: 19% !important;
+.trainers-table.admin-table th.col-specialization,
+.trainers-table.admin-table td.col-specialization {
+  width: 22% !important;
   text-align: center !important;
 }
-.trainers-table th.col-experience,
-.trainers-table td.col-experience {
+.trainers-table.admin-table th.col-experience,
+.trainers-table.admin-table td.col-experience {
+  width: 11% !important;
+  text-align: center !important;
+}
+.trainers-table.admin-table th.col-convenientTimings,
+.trainers-table.admin-table td.col-convenientTimings {
+  width: 13% !important;
+  text-align: center !important;
+}
+.trainers-table.admin-table th.col-status,
+.trainers-table.admin-table td.col-status {
+  width: 10% !important;
+  text-align: center !important;
+}
+.trainers-table.admin-table th.col-actions,
+.trainers-table.admin-table td.col-actions {
   width: 12% !important;
-  text-align: center !important;
-}
-.trainers-table th.col-convenientTimings,
-.trainers-table td.col-convenientTimings {
-  width: 14% !important;
-  text-align: center !important;
-}
-.trainers-table th.col-status,
-.trainers-table td.col-status {
-  width: 9% !important;
-  text-align: center !important;
-}
-.trainers-table th.col-actions,
-.trainers-table td.col-actions {
-  width: 12% !important;
-  text-align: center !important;
-  padding-right: 14px !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -14188,12 +14250,12 @@ svg.icon-danger {
 }
 .members-table.admin-table th.col-memberId,
 .members-table.admin-table td.col-memberId {
-  width: 13% !important;
+  width: 14% !important;
   text-align: center !important;
 }
 .members-table.admin-table th.col-mobileNumber,
 .members-table.admin-table td.col-mobileNumber {
-  width: 15% !important;
+  width: 16% !important;
   text-align: center !important;
 }
 .members-table.admin-table th.col-registrationStatus,
@@ -14208,41 +14270,41 @@ svg.icon-danger {
 }
 .members-table.admin-table th.col-actions,
 .members-table.admin-table td.col-actions {
-  width: 18% !important;
-  text-align: center !important;
-  padding-right: 14px !important;
+  width: 16% !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
    3. PLANS MODULE (5 Columns: Plan Name, Duration, Price, Status, Actions)
    ───────────────────────────────────────────────────────────── */
-.plans-table th.col-name,
-.plans-table td.col-name {
+.plans-table.admin-table th.col-name,
+.plans-table.admin-table td.col-name {
   width: 30% !important;
   text-align: left !important;
   padding-left: 20px !important;
   font-weight: 700 !important;
 }
-.plans-table th.col-duration,
-.plans-table td.col-duration {
+.plans-table.admin-table th.col-duration,
+.plans-table.admin-table td.col-duration {
   width: 18% !important;
   text-align: center !important;
 }
-.plans-table th.col-price,
-.plans-table td.col-price {
+.plans-table.admin-table th.col-price,
+.plans-table.admin-table td.col-price {
   width: 18% !important;
   text-align: center !important;
 }
-.plans-table th.col-status,
-.plans-table td.col-status {
+.plans-table.admin-table th.col-status,
+.plans-table.admin-table td.col-status {
   width: 16% !important;
   text-align: center !important;
 }
-.plans-table th.col-actions,
-.plans-table td.col-actions {
+.plans-table.admin-table th.col-actions,
+.plans-table.admin-table td.col-actions {
   width: 18% !important;
-  text-align: center !important;
-  padding-right: 14px !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -14250,13 +14312,13 @@ svg.icon-danger {
    ───────────────────────────────────────────────────────────── */
 .memberships-table.admin-table th.col-member,
 .memberships-table.admin-table td.col-member {
-  width: 22% !important;
+  width: 20% !important;
   text-align: left !important;
-  padding-left: 18px !important;
+  padding-left: 20px !important;
 }
 .memberships-table.admin-table th.col-membershipPlan,
 .memberships-table.admin-table td.col-membershipPlan {
-  width: 16% !important;
+  width: 17% !important;
   text-align: center !important;
 }
 .memberships-table.admin-table th.col-startDate,
@@ -14271,7 +14333,7 @@ svg.icon-danger {
 }
 .memberships-table.admin-table th.col-pendingAmount,
 .memberships-table.admin-table td.col-pendingAmount {
-  width: 12% !important;
+  width: 11% !important;
   text-align: center !important;
 }
 .memberships-table.admin-table th.col-status,
@@ -14281,14 +14343,14 @@ svg.icon-danger {
 }
 .memberships-table.admin-table th.col-paymentStatus,
 .memberships-table.admin-table td.col-paymentStatus {
-  width: 9% !important;
+  width: 10% !important;
   text-align: center !important;
 }
 .memberships-table.admin-table th.col-actions,
 .memberships-table.admin-table td.col-actions {
-  width: 11% !important;
-  text-align: center !important;
-  padding-right: 14px !important;
+  width: 12% !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -14296,53 +14358,45 @@ svg.icon-danger {
    ───────────────────────────────────────────────────────────── */
 .attendance-table.admin-table th.col-member,
 .attendance-table.admin-table td.col-member {
-  width: 20% !important;
-  min-width: 170px !important;
+  width: 18% !important;
   text-align: left !important;
-  padding-left: 18px !important;
+  padding-left: 20px !important;
 }
 .attendance-table.admin-table th.col-sessionName,
 .attendance-table.admin-table td.col-sessionName {
   width: 10% !important;
-  min-width: 95px !important;
   text-align: center !important;
 }
 .attendance-table.admin-table th.col-checkInTime,
 .attendance-table.admin-table td.col-checkInTime {
-  width: 10% !important;
-  min-width: 95px !important;
+  width: 11% !important;
   text-align: center !important;
 }
 .attendance-table.admin-table th.col-checkOutTime,
 .attendance-table.admin-table td.col-checkOutTime {
-  width: 13% !important;
-  min-width: 125px !important;
+  width: 11% !important;
   text-align: center !important;
 }
 .attendance-table.admin-table th.col-duration,
 .attendance-table.admin-table td.col-duration {
-  width: 11% !important;
-  min-width: 105px !important;
+  width: 10% !important;
   text-align: center !important;
 }
 .attendance-table.admin-table th.col-attendanceStatus,
 .attendance-table.admin-table td.col-attendanceStatus {
   width: 14% !important;
-  min-width: 135px !important;
   text-align: center !important;
 }
 .attendance-table.admin-table th.col-deviceId,
 .attendance-table.admin-table td.col-deviceId {
-  width: 12% !important;
-  min-width: 115px !important;
+  width: 13% !important;
   text-align: center !important;
 }
 .attendance-table.admin-table th.col-actions,
 .attendance-table.admin-table td.col-actions {
-  width: 10% !important;
-  min-width: 105px !important;
-  text-align: center !important;
-  padding-right: 14px !important;
+  width: 13% !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -14350,18 +14404,18 @@ svg.icon-danger {
    ───────────────────────────────────────────────────────────── */
 .payments-table.admin-table th.col-member,
 .payments-table.admin-table td.col-member {
-  width: 20% !important;
+  width: 18% !important;
   text-align: left !important;
-  padding-left: 18px !important;
+  padding-left: 20px !important;
 }
 .payments-table.admin-table th.col-transactionId,
 .payments-table.admin-table td.col-transactionId {
-  width: 15% !important;
+  width: 16% !important;
   text-align: center !important;
 }
 .payments-table.admin-table th.col-amount,
 .payments-table.admin-table td.col-amount {
-  width: 12% !important;
+  width: 11% !important;
   text-align: center !important;
 }
 .payments-table.admin-table th.col-paymentMethod,
@@ -14371,7 +14425,7 @@ svg.icon-danger {
 }
 .payments-table.admin-table th.col-paymentStatus,
 .payments-table.admin-table td.col-paymentStatus {
-  width: 10% !important;
+  width: 11% !important;
   text-align: center !important;
 }
 .payments-table.admin-table th.col-whatsappStatus,
@@ -14386,156 +14440,156 @@ svg.icon-danger {
 }
 .payments-table.admin-table th.col-actions,
 .payments-table.admin-table td.col-actions {
-  width: 11% !important;
-  text-align: center !important;
-  padding-right: 14px !important;
+  width: 12% !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
    7. ALLOCATIONS MODULE (Member, Trainer, Start, End, Status, Actions)
    ───────────────────────────────────────────────────────────── */
-.allocations-table th.col-member,
-.allocations-table td.col-member {
-  width: 25% !important;
+.allocations-table.admin-table th.col-member,
+.allocations-table.admin-table td.col-member {
+  width: 24% !important;
   text-align: left !important;
-  padding-left: 18px !important;
+  padding-left: 20px !important;
 }
-.allocations-table th.col-trainer,
-.allocations-table td.col-trainer {
-  width: 25% !important;
-  text-align: left !important;
+.allocations-table.admin-table th.col-trainer,
+.allocations-table.admin-table td.col-trainer {
+  width: 24% !important;
+  text-align: center !important;
 }
-.allocations-table th.col-startDate,
-.allocations-table td.col-startDate {
+.allocations-table.admin-table th.col-startDate,
+.allocations-table.admin-table td.col-startDate {
   width: 13% !important;
   text-align: center !important;
 }
-.allocations-table th.col-endDate,
-.allocations-table td.col-endDate {
+.allocations-table.admin-table th.col-endDate,
+.allocations-table.admin-table td.col-endDate {
   width: 13% !important;
   text-align: center !important;
 }
-.allocations-table th.col-status,
-.allocations-table td.col-status {
-  width: 11% !important;
+.allocations-table.admin-table th.col-status,
+.allocations-table.admin-table td.col-status {
+  width: 12% !important;
   text-align: center !important;
 }
-.allocations-table th.col-actions,
-.allocations-table td.col-actions {
-  width: 13% !important;
-  text-align: center !important;
-  padding-right: 14px !important;
+.allocations-table.admin-table th.col-actions,
+.allocations-table.admin-table td.col-actions {
+  width: 14% !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
    8. TIME SLOTS MODULE (Name, Start, End, Current, Max, Status, Actions)
    ───────────────────────────────────────────────────────────── */
-.slots-table th.col-name,
-.slots-table td.col-name {
-  width: 24% !important;
+.slots-table.admin-table th.col-name,
+.slots-table.admin-table td.col-name {
+  width: 22% !important;
   text-align: left !important;
   padding-left: 20px !important;
   font-weight: 700 !important;
 }
-.slots-table th.col-startTime,
-.slots-table td.col-startTime {
+.slots-table.admin-table th.col-startTime,
+.slots-table.admin-table td.col-startTime {
   width: 12% !important;
   text-align: center !important;
 }
-.slots-table th.col-endTime,
-.slots-table td.col-endTime {
+.slots-table.admin-table th.col-endTime,
+.slots-table.admin-table td.col-endTime {
   width: 12% !important;
   text-align: center !important;
 }
-.slots-table th.col-currentCapacity,
-.slots-table td.col-currentCapacity {
+.slots-table.admin-table th.col-currentCapacity,
+.slots-table.admin-table td.col-currentCapacity {
   width: 13% !important;
   text-align: center !important;
 }
-.slots-table th.col-maxCapacity,
-.slots-table td.col-maxCapacity {
+.slots-table.admin-table th.col-maxCapacity,
+.slots-table.admin-table td.col-maxCapacity {
   width: 13% !important;
   text-align: center !important;
 }
-.slots-table th.col-status,
-.slots-table td.col-status {
-  width: 11% !important;
+.slots-table.admin-table th.col-status,
+.slots-table.admin-table td.col-status {
+  width: 12% !important;
   text-align: center !important;
 }
-.slots-table th.col-actions,
-.slots-table td.col-actions {
-  width: 15% !important;
-  text-align: center !important;
-  padding-right: 14px !important;
+.slots-table.admin-table th.col-actions,
+.slots-table.admin-table td.col-actions {
+  width: 16% !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
    9. SLOT ALLOCATIONS MODULE (Member, Slot, Start, End, Status, Actions)
    ───────────────────────────────────────────────────────────── */
-.slotAllocations-table th.col-member,
-.slotAllocations-table td.col-member {
-  width: 26% !important;
+.slotAllocations-table.admin-table th.col-member,
+.slotAllocations-table.admin-table td.col-member {
+  width: 25% !important;
   text-align: left !important;
-  padding-left: 18px !important;
+  padding-left: 20px !important;
 }
-.slotAllocations-table th.col-timeSlot,
-.slotAllocations-table td.col-timeSlot {
-  width: 24% !important;
+.slotAllocations-table.admin-table th.col-timeSlot,
+.slotAllocations-table.admin-table td.col-timeSlot {
+  width: 23% !important;
   text-align: center !important;
 }
-.slotAllocations-table th.col-startDate,
-.slotAllocations-table td.col-startDate {
+.slotAllocations-table.admin-table th.col-startDate,
+.slotAllocations-table.admin-table td.col-startDate {
   width: 13% !important;
   text-align: center !important;
 }
-.slotAllocations-table th.col-endDate,
-.slotAllocations-table td.col-endDate {
+.slotAllocations-table.admin-table th.col-endDate,
+.slotAllocations-table.admin-table td.col-endDate {
   width: 13% !important;
   text-align: center !important;
 }
-.slotAllocations-table th.col-status,
-.slotAllocations-table td.col-status {
-  width: 10% !important;
+.slotAllocations-table.admin-table th.col-status,
+.slotAllocations-table.admin-table td.col-status {
+  width: 12% !important;
   text-align: center !important;
 }
-.slotAllocations-table th.col-actions,
-.slotAllocations-table td.col-actions {
+.slotAllocations-table.admin-table th.col-actions,
+.slotAllocations-table.admin-table td.col-actions {
   width: 14% !important;
-  text-align: center !important;
-  padding-right: 14px !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
    10. OPENING HOURS MODULE (Day, Open, Open Time, Close Time, Actions)
    ───────────────────────────────────────────────────────────── */
-.hours-table th.col-dayOfWeek,
-.hours-table td.col-dayOfWeek {
+.hours-table.admin-table th.col-dayOfWeek,
+.hours-table.admin-table td.col-dayOfWeek {
   width: 22% !important;
   text-align: left !important;
   padding-left: 20px !important;
   font-weight: 700 !important;
   text-transform: uppercase !important;
 }
-.hours-table th.col-isOpen,
-.hours-table td.col-isOpen {
+.hours-table.admin-table th.col-isOpen,
+.hours-table.admin-table td.col-isOpen {
   width: 18% !important;
   text-align: center !important;
 }
-.hours-table th.col-openTime,
-.hours-table td.col-openTime {
+.hours-table.admin-table th.col-openTime,
+.hours-table.admin-table td.col-openTime {
   width: 22% !important;
   text-align: center !important;
 }
-.hours-table th.col-closeTime,
-.hours-table td.col-closeTime {
+.hours-table.admin-table th.col-closeTime,
+.hours-table.admin-table td.col-closeTime {
   width: 22% !important;
   text-align: center !important;
 }
-.hours-table th.col-actions,
-.hours-table td.col-actions {
+.hours-table.admin-table th.col-actions,
+.hours-table.admin-table td.col-actions {
   width: 16% !important;
-  text-align: center !important;
-  padding-right: 14px !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -14543,13 +14597,13 @@ svg.icon-danger {
    ───────────────────────────────────────────────────────────── */
 .availability-table.admin-table th.col-trainer,
 .availability-table.admin-table td.col-trainer {
-  width: 18% !important;
+  width: 17% !important;
   text-align: left !important;
-  padding-left: 18px !important;
+  padding-left: 20px !important;
 }
 .availability-table.admin-table th.col-dayOfWeek,
 .availability-table.admin-table td.col-dayOfWeek {
-  width: 11% !important;
+  width: 10% !important;
   text-align: center !important;
 }
 .availability-table.admin-table th.col-startTime,
@@ -14574,52 +14628,52 @@ svg.icon-danger {
 }
 .availability-table.admin-table th.col-maxClients,
 .availability-table.admin-table td.col-maxClients {
-  width: 9% !important;
+  width: 10% !important;
   text-align: center !important;
 }
 .availability-table.admin-table th.col-isActive,
 .availability-table.admin-table td.col-isActive {
-  width: 9% !important;
+  width: 10% !important;
   text-align: center !important;
 }
 .availability-table.admin-table th.col-actions,
 .availability-table.admin-table td.col-actions {
   width: 13% !important;
-  text-align: center !important;
-  padding-right: 14px !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
    12. USERS MODULE (Email, Role, Active, Last Login, Actions)
    ───────────────────────────────────────────────────────────── */
-.users-table th.col-email,
-.users-table td.col-email {
-  width: 32% !important;
+.users-table.admin-table th.col-email,
+.users-table.admin-table td.col-email {
+  width: 30% !important;
   text-align: left !important;
   padding-left: 20px !important;
   font-weight: 600 !important;
 }
-.users-table th.col-role,
-.users-table td.col-role {
+.users-table.admin-table th.col-role,
+.users-table.admin-table td.col-role {
   width: 18% !important;
   text-align: center !important;
   text-transform: uppercase !important;
 }
-.users-table th.col-isActive,
-.users-table td.col-isActive {
+.users-table.admin-table th.col-isActive,
+.users-table.admin-table td.col-isActive {
   width: 16% !important;
   text-align: center !important;
 }
-.users-table th.col-lastLogin,
-.users-table td.col-lastLogin {
+.users-table.admin-table th.col-lastLogin,
+.users-table.admin-table td.col-lastLogin {
   width: 18% !important;
   text-align: center !important;
 }
-.users-table th.col-actions,
-.users-table td.col-actions {
-  width: 16% !important;
-  text-align: center !important;
-  padding-right: 14px !important;
+.users-table.admin-table th.col-actions,
+.users-table.admin-table td.col-actions {
+  width: 18% !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -14627,25 +14681,25 @@ svg.icon-danger {
    ───────────────────────────────────────────────────────────── */
 .notifications-table.admin-table th.col-title,
 .notifications-table.admin-table td.col-title {
-  width: 22% !important;
+  width: 20% !important;
   text-align: left !important;
   padding-left: 20px !important;
 }
 .notifications-table.admin-table th.col-member,
 .notifications-table.admin-table td.col-member {
   width: 18% !important;
-  text-align: left !important;
+  text-align: center !important;
 }
 .notifications-table.admin-table th.col-message,
 .notifications-table.admin-table td.col-message {
-  width: 30% !important;
+  width: 28% !important;
   text-align: left !important;
   overflow: hidden !important;
   text-overflow: ellipsis !important;
 }
 .notifications-table.admin-table th.col-isRead,
 .notifications-table.admin-table td.col-isRead {
-  width: 10% !important;
+  width: 11% !important;
   text-align: center !important;
 }
 .notifications-table.admin-table th.col-createdAt,
@@ -14655,82 +14709,96 @@ svg.icon-danger {
 }
 .notifications-table.admin-table th.col-actions,
 .notifications-table.admin-table td.col-actions {
-  width: 8% !important;
-  text-align: center !important;
-  padding-right: 14px !important;
+  width: 11% !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
    14. SETTINGS MODULE (Key, Value, Category, Description, Actions)
    ───────────────────────────────────────────────────────────── */
-.settings-table th.col-key,
-.settings-table td.col-key {
+.settings-table.admin-table th.col-key,
+.settings-table.admin-table td.col-key {
   width: 24% !important;
   text-align: left !important;
   padding-left: 20px !important;
   font-family: monospace !important;
 }
-.settings-table th.col-value,
-.settings-table td.col-value {
+.settings-table.admin-table th.col-value,
+.settings-table.admin-table td.col-value {
   width: 20% !important;
   text-align: center !important;
 }
-.settings-table th.col-category,
-.settings-table td.col-category {
+.settings-table.admin-table th.col-category,
+.settings-table.admin-table td.col-category {
   width: 18% !important;
   text-align: center !important;
   text-transform: uppercase !important;
 }
-.settings-table th.col-description,
-.settings-table td.col-description {
-  width: 26% !important;
+.settings-table.admin-table th.col-description,
+.settings-table.admin-table td.col-description {
+  width: 24% !important;
   text-align: left !important;
 }
-.settings-table th.col-actions,
-.settings-table td.col-actions {
-  width: 12% !important;
-  text-align: center !important;
-  padding-right: 14px !important;
+.settings-table.admin-table th.col-actions,
+.settings-table.admin-table td.col-actions {
+  width: 14% !important;
+  text-align: right !important;
+  padding-right: 20px !important;
 }
 
 /* ─────────────────────────────────────────────────────────────
    15. AUDIT MODULE (User, Action, Entity, Timestamp - Read-only)
    ───────────────────────────────────────────────────────────── */
-.audit-table th.col-user,
-.audit-table td.col-user {
+.audit-table.admin-table th.col-user,
+.audit-table.admin-table td.col-user {
   width: 28% !important;
   text-align: left !important;
   padding-left: 20px !important;
 }
-.audit-table th.col-action,
-.audit-table td.col-action {
+.audit-table.admin-table th.col-action,
+.audit-table.admin-table td.col-action {
   width: 26% !important;
   text-align: center !important;
 }
-.audit-table th.col-entityType,
-.audit-table td.col-entityType {
+.audit-table.admin-table th.col-entityType,
+.audit-table.admin-table td.col-entityType {
   width: 22% !important;
   text-align: center !important;
 }
-.audit-table th.col-timestamp,
-.audit-table td.col-timestamp {
+.audit-table.admin-table th.col-timestamp,
+.audit-table.admin-table td.col-timestamp {
   width: 24% !important;
-  text-align: center !important;
+  text-align: right !important;
+  padding-right: 20px !important;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   16. REPORT MODULE IN ADMIN (6-7 Columns)
+   ───────────────────────────────────────────────────────────── */
+.report-table-card .admin-table th:first-child,
+.report-table-card .admin-table td:first-child {
+  text-align: left !important;
+  padding-left: 20px !important;
+}
+.report-table-card .admin-table th:last-child,
+.report-table-card .admin-table td:last-child {
+  text-align: right !important;
   padding-right: 20px !important;
 }
 
 /* Mobile responsive handling for admin tables */
 @media (max-width: 860px) {
-  .admin-shell .table-card table,
-  .admin-table-card table,
+  .admin-shell:not(.reception-shell) .table-card table,
+  .admin-table-card:not(.reception-table-card) table,
   .admin-table {
     table-layout: auto !important;
     min-width: 680px !important;
   }
-  .admin-shell .table-card th,
-  .admin-shell .table-card td,
-  .admin-table-card th,
-  .admin-table-card td {
+  .admin-shell:not(.reception-shell) .table-card th,
+  .admin-shell:not(.reception-shell) .table-card td,
+  .admin-table-card:not(.reception-table-card) th,
+  .admin-table-card:not(.reception-table-card) td {
     padding: 10px 10px !important;
     font-size: 12px !important;
   }

@@ -1992,6 +1992,18 @@ button.outline-btn:hover {
   object-fit: cover !important;
 }
 
+.attendance-avatar-img-sm {
+  width: 38px !important;
+  height: 38px !important;
+  border-radius: 12px !important;
+  background: rgba(255, 255, 255, 0.05) !important;
+  border: 1.5px solid #d4ff00 !important;
+  object-fit: cover !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35) !important;
+  flex-shrink: 0 !important;
+  display: block !important;
+}
+
 .attendance-member-name-btn {
   background: none !important;
   border: none !important;
@@ -3989,4 +4001,28 @@ button.outline-btn:hover {
     -webkit-overflow-scrolling: touch !important;
     width: 100% !important;
   }
+}
+
+/* ==========================================================================
+   ADMIN ROLE OVERRIDES (STRICTLY ADMIN ONLY)
+   Overrides .table-card th:last-child { min-width: 380px } and .row-actions { min-width: 240px }
+   ========================================================================== */
+.admin-shell:not(.reception-shell) .table-card th:last-child,
+.admin-shell:not(.reception-shell) .table-card td:last-child,
+.admin-table-card:not(.reception-table-card) th:last-child,
+.admin-table-card:not(.reception-table-card) td:last-child,
+.admin-table th.col-actions,
+.admin-table td.col-actions {
+  min-width: 0 !important;
+  max-width: none !important;
+  text-align: right !important;
+  padding-right: 20px !important;
+}
+
+.admin-shell:not(.reception-shell) .row-actions,
+.admin-table-card:not(.reception-table-card) .row-actions,
+.admin-table td.col-actions .row-actions {
+  min-width: 0 !important;
+  width: 100% !important;
+  justify-content: flex-end !important;
 }

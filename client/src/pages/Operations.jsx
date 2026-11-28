@@ -12,6 +12,7 @@ import { TableSkeleton } from '../components/Skeleton';
 import AttendancePopup from '../components/AttendancePopup';
 import { parseBiometricFeedback } from '../utils/biometricErrors';
 import { createMorFinAuth } from '../services/morfinAuth.mjs';
+import { getInitials } from '../utils/avatar';
 
 const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
 const field = (name, label, type = 'text', options) => ({ name, label, type, options });
@@ -177,6 +178,37 @@ const unpack = (data, key) => Array.isArray(data) ? data : key && Array.isArray(
 const csvCell = value => '"' + String(value ?? '').replace(/^[=+@\-\t\r]/, "'$&").replaceAll('"', '""') + '"';
 const filterableSections = ['members', 'trainers', 'memberships', 'membership', 'attendance', 'payments', 'slots', 'slotAllocations', 'allocations', 'users'];
 
+function MemberAvatarCell({ picture, name, pType = 'member', className = '' }) {
+  const [imgError, setImgError] = useState(false);
+  const prevPicRef = useRef(picture);
+
+  if (prevPicRef.current !== picture) {
+    prevPicRef.current = picture;
+    setImgError(false);
+  }
+
+  const fallback = pType === 'trainer' ? 'TR' : pType === 'reception' ? 'ST' : 'M';
+  const initials = getInitials(name, fallback);
+  const roleClass = pType === 'trainer' ? 'trainer-avatar' : pType === 'reception' ? 'staff-avatar' : '';
+
+  if (picture && !imgError) {
+    return (
+      <img
+        src={picture}
+        alt={name || 'Profile'}
+        className={`attendance-avatar-img-sm ${className}`.trim()}
+        onError={() => setImgError(true)}
+      />
+    );
+  }
+
+  return (
+    <span className={`attendance-avatar ${roleClass} ${className}`.trim()}>
+      {initials}
+    </span>
+  );
+}
+
 export default function Operations({ section, user, query = '' }) {
   const nav = useNavigate();
   const isAdmin = user.role === 'admin';
@@ -211,6 +243,13 @@ export default function Operations({ section, user, query = '' }) {
   const [memberSearch, setMemberSearch] = useState(query || '');
   const [isScanningFingerprint, setIsScanningFingerprint] = useState(false);
   const [fingerprintScanMessage, setFingerprintScanMessage] = useState(null);
+  const tableScrollRef = useRef(null);
+
+  useEffect(() => {
+    if (user?.role === 'admin' && tableScrollRef.current) {
+      tableScrollRef.current.scrollLeft = 0;
+    }
+  }, [section, page, rows, user?.role]);
 
   useEffect(() => {
     if (query !== memberSearch) {
@@ -910,6 +949,7 @@ export default function Operations({ section, user, query = '' }) {
     cash: visible.filter(row => row.paymentStatus === 'completed' && row.paymentMethod === 'cash').reduce((sum, row) => sum + Number(row.amount || 0), 0),
     refunded: visible.filter(row => row.paymentStatus === 'refunded').reduce((sum, row) => sum + Number(row.amount || 0), 0),
   } : null;
+
   const renderCell = (row, key) => {
     const value = row[key];
     if (key === 'member') {
@@ -918,11 +958,10 @@ export default function Operations({ section, user, query = '' }) {
       const isAttendanceSection = section === 'attendance';
 
       // For attendance rows, prefer the populated trainer/user over member
-      let displayName, displayInitials, displayId, displayPhone, displayDbId, displayPicture;
+      let displayName, displayId, displayPhone, displayDbId, displayPicture;
       if (isAttendanceSection && pType === 'trainer' && row.trainer) {
         const t = row.trainer;
         displayName = t.fullName || row.personName || 'Trainer';
-        displayInitials = displayName.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase() || 'TR';
         displayId = t.trainerId || row.personCode || '';
         displayPhone = '';
         displayDbId = t._id;
@@ -930,18 +969,16 @@ export default function Operations({ section, user, query = '' }) {
       } else if (isAttendanceSection && pType === 'reception' && row.user) {
         const u = row.user;
         displayName = u.name || u.email?.split('@')[0] || row.personName || 'Staff';
-        displayInitials = displayName.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase() || 'ST';
         displayId = row.personCode || 'STAFF';
         displayPhone = u.email || '';
         displayDbId = null;
         displayPicture = null;
       } else {
         displayName = value?.fullName || (typeof value === 'string' ? value : row.personName || 'Unknown member');
-        displayInitials = displayName.split(' ').map(p => p[0]).join('').slice(0, 2).toUpperCase() || 'M';
         displayId = value?.memberId || row.personCode || '';
         displayPhone = value?.mobileNumber || '';
         displayDbId = value?._id || (typeof value === 'object' ? value?._id : null);
-        displayPicture = value?.profilePicture || null;
+        displayPicture = value?.profilePicture || row.profilePicture || (typeof value === 'object' ? value?.profilePicture : null) || null;
       }
 
       const roleBadgeClass = pType === 'trainer' ? 'role-badge-trainer' : pType === 'reception' ? 'role-badge-staff' : 'role-badge-member';
@@ -949,23 +986,11 @@ export default function Operations({ section, user, query = '' }) {
 
       return (
         <div className="attendance-member-cell">
-          {displayPicture ? (
-            <img
-              src={displayPicture}
-              alt={displayName}
-              className="attendance-avatar-img-sm"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                if (e.currentTarget.nextElementSibling) e.currentTarget.nextElementSibling.style.display = 'grid';
-              }}
-            />
-          ) : null}
-          <span
-            className={`attendance-avatar ${pType === 'trainer' ? 'trainer-avatar' : pType === 'reception' ? 'staff-avatar' : ''}`}
-            style={{ display: displayPicture ? 'none' : 'grid' }}
-          >
-            {displayInitials}
-          </span>
+          <MemberAvatarCell
+            picture={displayPicture}
+            name={displayName}
+            pType={pType}
+          />
           <div className="attendance-member-meta">
             {displayDbId && pType === 'member' ? (
               <button
@@ -990,11 +1015,11 @@ export default function Operations({ section, user, query = '' }) {
     }
     if (key === 'trainer') {
       const name = value?.fullName || (typeof value === 'string' ? value : 'Trainer');
-      const initials = name.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase() || 'TR';
       const trainerId = value?.trainerId || '';
+      const picture = value?.profilePicture || null;
       return (
         <div className="attendance-member-cell trainer-cell">
-          <span className="attendance-avatar trainer-avatar">{initials}</span>
+          <MemberAvatarCell picture={picture} name={name} pType="trainer" />
           <div className="attendance-member-meta">
             <b className="trainer-name">{name}</b>
             <div className="attendance-member-subtags">
@@ -1007,10 +1032,10 @@ export default function Operations({ section, user, query = '' }) {
     }
     if (key === 'user' && typeof value === 'object') {
       const name = value?.name || value?.email || 'User';
-      const initials = name.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase() || 'U';
+      const picture = value?.profilePicture || null;
       return (
         <div className="attendance-member-cell user-cell">
-          <span className="attendance-avatar user-avatar">{initials}</span>
+          <MemberAvatarCell picture={picture} name={name} pType="reception" />
           <div className="attendance-member-meta">
             <b>{name}</b>
             <small className="user-email-text">{value?.email || ''}</small>
@@ -1020,31 +1045,20 @@ export default function Operations({ section, user, query = '' }) {
     }
     if (key === 'fullName') {
       const name = value || 'Unnamed';
-      const initials = name.split(' ').map(part => part[0]).join('').slice(0, 2).toUpperCase() || (section === 'trainers' ? 'TR' : 'M');
       const showSubId = !columns.includes('memberId') && !columns.includes('trainerId');
       const showSubPhone = !columns.includes('mobileNumber');
       const subId = showSubId ? (row.memberId || row.trainerId || '') : '';
       const subPhone = showSubPhone ? (row.mobileNumber || row.user?.email || row.email || '') : '';
       const memberDbId = row._id || null;
+      const pType = section === 'trainers' ? 'trainer' : 'member';
+      const picture = row.profilePicture || null;
       return (
         <div className="attendance-member-cell">
-          {row.profilePicture ? (
-            <img
-              src={row.profilePicture}
-              alt={name}
-              className="attendance-avatar-img-sm"
-              onError={(e) => {
-                e.currentTarget.style.display = 'none';
-                if (e.currentTarget.nextElementSibling) e.currentTarget.nextElementSibling.style.display = 'grid';
-              }}
-            />
-          ) : null}
-          <span
-            className="attendance-avatar"
-            style={{ display: row.profilePicture ? 'none' : 'grid' }}
-          >
-            {initials}
-          </span>
+          <MemberAvatarCell
+            picture={picture}
+            name={name}
+            pType={pType}
+          />
           <div className="attendance-member-meta">
             {section === 'members' ? (
               <button
@@ -2154,7 +2168,7 @@ export default function Operations({ section, user, query = '' }) {
       />
     ) : (
       <section className={`table-card ${section === 'reports' ? 'report-table-card' : ''} ${section === 'payments' ? 'payments-table-card' : ''} ${section === 'attendance' ? 'attendance-table-card' : ''} ${['membership', 'memberships'].includes(section) ? 'membership-table-card' : ''} ${user.role}-table-card`}>
-        <div className="table-scroll">
+        <div className="table-scroll" ref={tableScrollRef}>
           <table className={`${section}-table ${user.role}-table`}>
             <thead>
               <tr>

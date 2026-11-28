@@ -37,6 +37,7 @@ import {
   speakEnglishCue,
   playWelcomeAudio,
 } from '../utils/kioskAudio';
+import { getInitials } from '../utils/avatar';
 import '../attendance-kiosk.css';
 
 const initial = { phase: 'initializing', message: 'Connecting to biometric scanner…' };
@@ -454,13 +455,11 @@ export default function AttendanceVerification({ standalone = true }) {
                         if (fallback) fallback.style.display = 'flex';
                       }}
                     />
-                  ) : null}
-                  <div
-                    className="scanner-center-avatar-initials"
-                    style={{ display: lastPunch.profilePicture ? 'none' : 'flex' }}
-                  >
-                    <span>{lastPunch.avatarInitials || lastPunch.name?.slice(0, 2).toUpperCase() || 'VF'}</span>
-                  </div>
+                  ) : (
+                    <div className="scanner-center-avatar-initials">
+                      <span>{getInitials(lastPunch.name, 'VF')}</span>
+                    </div>
+                  )}
                 </div>
               ) : (
                 <>
@@ -524,13 +523,11 @@ export default function AttendanceVerification({ standalone = true }) {
                     if (e.currentTarget.nextElementSibling) e.currentTarget.nextElementSibling.style.display = 'grid';
                   }}
                 />
-              ) : null}
-              <div
-                className="recent-punch-avatar"
-                style={{ display: lastPunch.profilePicture ? 'none' : 'grid' }}
-              >
-                {lastPunch.avatarInitials || lastPunch.name.slice(0, 2).toUpperCase()}
-              </div>
+              ) : (
+                <div className="recent-punch-avatar">
+                  {getInitials(lastPunch.name, 'VF')}
+                </div>
+              )}
               <div className="recent-punch-details">
                 <div className="recent-punch-line1">
                   <b>{lastPunch.name}</b>

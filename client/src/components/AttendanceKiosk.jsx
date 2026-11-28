@@ -5,6 +5,7 @@ import { createMorFinAuth } from '../services/morfinAuth.mjs';
 import { createAttendanceScanner } from '../services/attendanceScanner.mjs';
 import AttendancePopup from './AttendancePopup';
 import { parseBiometricFeedback } from '../utils/biometricErrors';
+import { getInitials } from '../utils/avatar';
 
 const initial = { phase: 'initializing', message: 'Checking scanner...' };
 export default function AttendanceKiosk({ user, onRecorded }) {
@@ -220,14 +221,14 @@ export default function AttendanceKiosk({ user, onRecorded }) {
             if (e.currentTarget.nextElementSibling) e.currentTarget.nextElementSibling.style.display = 'grid';
           }}
         />
-      ) : null}
-      <span
-        className="kiosk-avatar"
-        style={{ display: result.member?.profilePicture ? 'none' : 'grid' }}
-        aria-label="Member default avatar"
-      >
-        {result.member?.avatarInitials || 'VF'}
-      </span>
+      ) : (
+        <span
+          className="kiosk-avatar"
+          aria-label="Member default avatar"
+        >
+          {getInitials(result.member?.fullName, 'VF')}
+        </span>
+      )}
       <div style={{ flex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
           <h3 style={{ margin: 0 }}>{result.member?.fullName}</h3>

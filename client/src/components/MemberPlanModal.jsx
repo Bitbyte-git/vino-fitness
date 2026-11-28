@@ -15,6 +15,7 @@ import {
   ExternalLink,
 } from 'lucide-react';
 import api from '../services/api';
+import { getInitials } from '../utils/avatar';
 
 const formatDate = (val) => {
   if (!val) return '—';
@@ -136,13 +137,11 @@ export default function MemberPlanModal({ member, onClose, onViewFullProfile }) 
                     }
                   }}
                 />
-              ) : null}
-              <div
-                className="member-plan-avatar-fallback"
-                style={{ display: member.profilePicture ? 'none' : 'grid' }}
-              >
-                {initials(member.fullName)}
-              </div>
+              ) : (
+                <div className="member-plan-avatar-fallback">
+                  {getInitials(member.fullName)}
+                </div>
+              )}
             </div>
             <div className="member-plan-identity">
               <span className="member-plan-tag">MEMBER MEMBERSHIP PLAN</span>

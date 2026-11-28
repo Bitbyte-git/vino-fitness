@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Fingerprint, Loader2, CheckCircle2, X, Trash2, ShieldCheck, AlertTriangle, Scan } from 'lucide-react';
 import api from '../services/api';
+import { getInitials } from '../utils/avatar';
 import { createMorFinAuth } from '../services/morfinAuth.mjs';
 import { assertNoDuplicateCapture } from '../utils/biometricDuplicateCheck';
 
@@ -149,10 +150,11 @@ export default function MemberFingerprintModal({ member, user, onClose, onUpdate
                 <img
                   src={member.profilePicture}
                   alt={displayName}
-                  onError={(e) => { e.currentTarget.style.display = 'none'; e.currentTarget.nextElementSibling.style.display = 'flex'; }}
+                  onError={(e) => { e.currentTarget.style.display = 'none'; if (e.currentTarget.nextElementSibling) e.currentTarget.nextElementSibling.style.display = 'flex'; }}
                 />
-              ) : null}
-              <span style={{ display: member.profilePicture ? 'none' : 'flex' }}>{initials}</span>
+              ) : (
+                <span>{getInitials(displayName, initials)}</span>
+              )}
             </div>
             <div className="fp-modal-person-info">
               <div className="fp-modal-tag-row">

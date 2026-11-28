@@ -7,6 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { LayoutDashboard, Users, Dumbbell, CreditCard, CalendarCheck, ReceiptIndianRupee, ChartNoAxesCombined, Search, Plus, ArrowUpRight, LogOut, Menu, X, ChevronRight, WalletCards, UserCheck, Clock3, Flame, Utensils, Target, Loader2, Fingerprint, IndianRupee, Bell, Settings, Layers, ShieldCheck, CalendarRange, CalendarDays, UserPlus, DoorOpen, FileText, MapPin, Activity } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { api, dashboardService, memberService } from '../services';
+import { getInitials } from '../utils/avatar';
 import { ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, CartesianGrid, XAxis, YAxis, Tooltip } from 'recharts';
 
 const CHART_COLORS = ['#C6FF00', '#58D68D', '#F6B94A', '#7CC7E8', '#FF6B72'];
@@ -518,8 +519,9 @@ function MemberOverview({ user, stats, onNavigate }) {
                   if (e.currentTarget.nextElementSibling) e.currentTarget.nextElementSibling.style.display = 'grid';
                 }}
               />
-            ) : null}
-            <i style={{ display: member?.profilePicture ? 'none' : 'grid' }}>{member?.avatarInitials || 'M'}</i>
+            ) : (
+              <i>{getInitials(member?.fullName || user?.name, 'M')}</i>
+            )}
             <h3>{member?.fullName || user?.name || 'Member'}<small>{member?.fitnessGoal?.replaceAll('_', ' ') || 'Fitness goal not set'}</small></h3>
           </div>
           <span>{member?.height ? `${member.height} cm` : 'Height not recorded'} · {member?.weight ? `${member.weight} kg` : 'Weight not recorded'}</span>
@@ -601,8 +603,9 @@ function MemberTable({ compact = false, rows = [], onViewAll }) {
                           if (e.currentTarget.nextElementSibling) e.currentTarget.nextElementSibling.style.display = 'grid';
                         }}
                       />
-                    ) : null}
-                    <i style={{ display: m.profilePicture ? 'none' : 'grid' }}>{m.avatarInitials || m.fullName?.split(' ').map(n => n[0]).join('') || 'M'}</i>
+                    ) : (
+                      <i>{getInitials(m.fullName, 'M')}</i>
+                    )}
                     <span>
                       <b>{m.fullName || 'Unknown'}</b>
                       <small>{m.memberId || m._id}</small>
