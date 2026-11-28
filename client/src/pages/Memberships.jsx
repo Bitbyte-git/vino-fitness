@@ -200,7 +200,7 @@ export default function Memberships() {
               <div style={{ maxWidth: '520px' }}>
                 <span className="luxury-card-tag">1-on-1 Dedicated Coaching</span>
                 <div className="luxury-card-price" style={{ margin: '4px 0 12px' }}>
-                  {ptData.price} <span>/ 16 Classes</span>
+                  {ptData.price}
                 </div>
                 <p className="luxury-card-desc" style={{ marginBottom: '24px' }}>
                   {ptData.subtitle} Valid for {ptData.validity}. Admission fees non-refundable.
@@ -243,7 +243,7 @@ export default function Memberships() {
 
                   <h3 className="luxury-card-title">{p.name}</h3>
                   <div className="luxury-card-price">
-                    {p.price} <span>/ {p.duration}</span>
+                    {p.price}
                   </div>
 
                   <div style={{ fontSize: '12px', color: 'var(--lime)', fontWeight: 500, marginBottom: '8px' }}>

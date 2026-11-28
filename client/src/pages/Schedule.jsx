@@ -24,8 +24,8 @@ const shiftsData = {
     subtitle: 'Strength, hypertrophy & morning conditioning',
     icon: Sun,
     slots: [
-      { id: 'm1', time: '05:00 — 07:00 AM', name: 'Early Risers Strength', status: 'Available' },
-      { id: 'm2', time: '07:00 — 10:00 AM', name: 'Prime Morning Coaching', status: 'Available' },
+      { id: 'm1', time: '05:00 AM — 07:00 AM', name: 'Early Risers Strength', status: 'Available' },
+      { id: 'm2', time: '07:00 AM — 10:00 AM', name: 'Prime Morning Coaching', status: 'Available' },
     ]
   },
   evening: {
@@ -37,8 +37,8 @@ const shiftsData = {
     subtitle: 'Peak strength, power hours & conditioning',
     icon: Moon,
     slots: [
-      { id: 'e1', time: '05:00 — 07:00 PM', name: 'Prime Evening Strength', status: 'Available' },
-      { id: 'e2', time: '07:00 — 09:00 PM', name: 'Night Power Hours', status: 'Available' },
+      { id: 'e1', time: '05:00 PM — 07:00 PM', name: 'Prime Evening Strength', status: 'Available' },
+      { id: 'e2', time: '07:00 PM — 09:00 PM', name: 'Night Power Hours', status: 'Available' },
     ]
   }
 };
